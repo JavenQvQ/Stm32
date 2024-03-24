@@ -3,11 +3,11 @@
         {
             "name": "Target 1",
             "includePath": [
-                "d:\\工程\\方波生成及测量\\Start",
-                "d:\\工程\\方波生成及测量\\Library",
-                "d:\\工程\\方波生成及测量\\User",
-                "d:\\工程\\方波生成及测量\\Hardware",
-                "d:\\工程\\方波生成及测量\\System"
+                "d:\\工程\\stm32工程\\方波生成及测量\\Start",
+                "d:\\工程\\stm32工程\\方波生成及测量\\Library",
+                "d:\\工程\\stm32工程\\方波生成及测量\\User",
+                "d:\\工程\\stm32工程\\方波生成及测量\\Hardware",
+                "d:\\工程\\stm32工程\\方波生成及测量\\System"
             ],
             "defines": [
                 "USE_STDPERIPH_DRIVER",
