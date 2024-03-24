@@ -1,0 +1,7 @@
+*** Using Compiler 'V5.06 update 5 (build 528)', folder: 'D:\ruanjian\keil\ARM\ARMCC\Bin'
+Build target 'Target 1'
+compiling Key.c...
+linking...
+Program Size: Code=7330 RO-data=1790 RW-data=8 ZI-data=1696  
+".\Objects\Project.axf" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:01
