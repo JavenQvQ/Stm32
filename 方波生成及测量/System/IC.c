@@ -1,4 +1,7 @@
 #include "stm32f10x.h"
+uint8_t IC_Flag=0;//溢出标志位
+uint8_t IC_CNT=0;//溢出计数器
+static u32 tmp16_CH1;
 void IC_Init()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);//使能GPIOA时钟
@@ -9,32 +12,85 @@ void IC_Init()
     GPIO_Init(GPIOA,&GPIO_InitStructure);//根据参数初始化GPIOA的引脚
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3,ENABLE);//使能TIM3时钟
-    TIM_InternalClockConfig(TIM3);//设置TIM3时钟源为内部时钟源
-    TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;//定义结构体
-    TIM_TimeBaseInitStructure.TIM_ClockDivision=TIM_CKD_DIV1;//设置时钟分割:TDTS=TIM_CKD_DIV1
-    TIM_TimeBaseInitStructure.TIM_CounterMode=TIM_CounterMode_Up;//设置计数器模式
-    TIM_TimeBaseInitStructure.TIM_Period=65536-1;//设置自动重装载寄存器周期的值ARR
-    TIM_TimeBaseInitStructure.TIM_Prescaler=72-1;//设置用来作为TIMx时钟频率除数的预分频值PSC
-    TIM_TimeBaseInitStructure.TIM_RepetitionCounter=0;//设置重复计数器的值
-    TIM_TimeBaseInit(TIM3,&TIM_TimeBaseInitStructure);//根据指定的参数初始化TIMx的时间基数单位
-    //配置输入捕获模式
+    TIM_DeInit(TIM3);//复位TIM3
+    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;//定义结构体
+    TIM_TimeBaseStructure.TIM_Period = 65535;//根据个人需求进行配置       
+	TIM_TimeBaseStructure.TIM_Prescaler = 71;  //预分频值
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//输入时钟不分频
+	TIM_TimeBaseStructure.TIM_CounterMode =	TIM_CounterMode_Up; 	//向上计数
+	TIM_TimeBaseInit(TIM3,&TIM_TimeBaseStructure);
+
     TIM_ICInitTypeDef TIM_ICInitStructure;//定义结构体
-    TIM_ICInitStructure.TIM_Channel=TIM_Channel_1;//选择输入捕获通道
-    TIM_ICInitStructure.TIM_ICFilter=0xF;//设置输入滤波器,不滤波
-    TIM_ICInitStructure.TIM_ICPolarity=TIM_ICPolarity_Rising;//上升沿触发
-    TIM_ICInitStructure.TIM_ICPrescaler=TIM_ICPSC_DIV1;//设置输入分频
-    TIM_ICInitStructure.TIM_ICSelection=TIM_ICSelection_DirectTI;//映射到TI1上,直连通道
-    TIM_ICInit(TIM3,&TIM_ICInitStructure);//根据TIM_ICInitStruct中指定的参数初始化外设TIMx的输入捕获通道
+    TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;     //捕捉上升沿
+	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;    //捕捉中断
+	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;       //捕捉不分频
+	TIM_ICInitStructure.TIM_ICFilter = 0x3;          //捕捉输入滤波
+	TIM_ICInit(TIM3, &TIM_ICInitStructure);
 
-    TIM_SelectInputTrigger(TIM3,TIM_TS_TI1FP1);//选择输入触发源
-    TIM_SelectSlaveMode(TIM3,TIM_SlaveMode_Reset);//选择从模式
+    TIM_ClearFlag(TIM3, TIM_FLAG_Update);  //清除溢出标志
+    NVIC_InitTypeDef NVIC_InitStructure;  //定义结构体
+	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);	  
 
-    TIM_Cmd(TIM3,ENABLE);//使能TIMx外设
+    TIM_ClearFlag(TIM3,TIM_FLAG_Update);
+	TIM_ARRPreloadConfig(TIM3,DISABLE);
+	
+	/* Enable the CC2 Interrupt Request */
+	TIM_ITConfig(TIM3, TIM_IT_CC1|TIM_IT_Update , ENABLE);						
+    /* TIM enable counter */
+	TIM_Cmd(TIM3, ENABLE);
+
 }
 
 uint16_t IC_GetFrequency()
 {
-    return 1000000/TIM_GetCapture1(TIM3);//返回捕获频率
+    return 1000000/tmp16_CH1;
+}
+
+void TIM3_IRQHandler(void)                        //定时器中断
+{
+	//频率缓冲区计数
+	static u32 this_time_CH1 = 0;
+	static u32 last_time_CH1 = 0;
+	static u8 capture_number_CH1 = 0;
+    static u8 CH1_Cycles_Count=0;
+
+
+		
+	if (TIM_GetITStatus(TIM3,TIM_IT_Update) != RESET)       //计数器更新中断
+	{
+		  TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+		  //溢出次数通道1、2分开统计
+		  CH1_Cycles_Count++;
+	}
+	if(TIM_GetITStatus(TIM3, TIM_IT_CC1) != RESET)   //通道1脉冲检测中断
+	{
+			TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
+			if(capture_number_CH1 == 0)                          //收到第一个上升沿
+			{
+				capture_number_CH1 = 1;
+				last_time_CH1 = TIM_GetCapture1(TIM3);
+			}
+			else if(capture_number_CH1 == 1)                     //收到第二个上升沿
+			{
+				//capture_number_CH1 = 0;
+				this_time_CH1 = TIM_GetCapture1(TIM3);
+				if(this_time_CH1 > last_time_CH1)
+				{
+					tmp16_CH1 = this_time_CH1 - last_time_CH1 + 65536* CH1_Cycles_Count;
+				}
+				else
+				{
+					tmp16_CH1 = 65536 * CH1_Cycles_Count - last_time_CH1 + this_time_CH1;
+				}			
+				CH1_Cycles_Count = 0;
+				last_time_CH1 = this_time_CH1;	
+			}							
+	}
 }
 
 
