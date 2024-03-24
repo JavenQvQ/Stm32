@@ -61,8 +61,8 @@ int main()
 		{
 		frequency=frequency_Set;
 		PWM_SetFrequency(frequency);			
-		}
-
+		}//显示频率
+		
 		OLED_ShowNum(1,1,IC_GetFrequency(),7);
 	}
 	
