@@ -59,7 +59,7 @@ void PWM_SetFrequency(uint16_t f)
 	// 找一组最接近的
 	for(int i=midInt;i>=1;i--)
 	{
-		if(clkInt%i==0)
+		if(clkInt%i==0)//找到一个能整除的,就是最接近的,因为是从大到小找的
 		{
 			prescaler = i;
 			period = clkInt/i;
@@ -68,4 +68,7 @@ void PWM_SetFrequency(uint16_t f)
 	}
     TIM_PrescalerConfig(TIM2,prescaler-1,TIM_PSCReloadMode_Immediate);//设置用来作为TIMx时钟频率除数的预分频值PSC
     TIM_SetAutoreload(TIM2,period-1);//设置自动重装载寄存器周期的值ARR
+    if(period%2!=0)//如果是奇数
+    period=period+1;//保证ccr为整数
+    TIM_SetCompare2(TIM2,period/2);//设置待装入捕获比较寄存器的脉冲值ccr
 }

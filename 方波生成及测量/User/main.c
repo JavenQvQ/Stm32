@@ -57,8 +57,12 @@ int main()
 			OLED_ShowNum(2,1,frequency_Set,7);
 		}break;
 		}
+		if(frequency_Set!=frequency)
+		{
 		frequency=frequency_Set;
-		PWM_SetFrequency(frequency);
+		PWM_SetFrequency(frequency);			
+		}
+
 		OLED_ShowNum(1,1,IC_GetFrequency(),7);
 	}
 	
