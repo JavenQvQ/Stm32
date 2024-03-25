@@ -1,7 +1,7 @@
 #include "stm32f10x.h"
 uint8_t IC_Flag=0;//溢出标志位
 uint8_t IC_CNT=0;//溢出计数器
-static u32 tmp16_CH1;
+static uint64_t tmp16_CH1;
 void IC_Init()
 {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);//使能GPIOA时钟
@@ -15,7 +15,7 @@ void IC_Init()
     TIM_DeInit(TIM3);//复位TIM3
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;//定义结构体
     TIM_TimeBaseStructure.TIM_Period = 65535;//根据个人需求进行配置       
-	TIM_TimeBaseStructure.TIM_Prescaler = 71;  //预分频值
+	TIM_TimeBaseStructure.TIM_Prescaler = 8;  //预分频值
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//输入时钟不分频
 	TIM_TimeBaseStructure.TIM_CounterMode =	TIM_CounterMode_Up; 	//向上计数
 	TIM_TimeBaseInit(TIM3,&TIM_TimeBaseStructure);
@@ -48,7 +48,7 @@ void IC_Init()
 
 uint16_t IC_GetFrequency()
 {
-    return 1000000/tmp16_CH1;
+    return 8000000/tmp16_CH1;
 }
 
 void TIM3_IRQHandler(void)                        //定时器中断
