@@ -1,96 +1,54 @@
 #include "stm32f10x.h"
-uint8_t IC_Flag=0;//溢出标志位
-uint8_t IC_CNT=0;//溢出计数器
-static uint64_t tmp16_CH1;
-void IC_Init()
+
+void ADC1_Init(uint32_t AddrB)
 {
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);//使能GPIOA时钟
-    GPIO_InitTypeDef GPIO_InitStructure;//定义结构体
-    GPIO_InitStructure.GPIO_Mode=GPIO_Mode_IPU;//设置引脚模式为上拉输入
-    GPIO_InitStructure.GPIO_Pin=GPIO_Pin_6;//设置引脚号为6
-    GPIO_InitStructure.GPIO_Speed=GPIO_Speed_50MHz;//设置引脚速率为50MHz
-    GPIO_Init(GPIOA,&GPIO_InitStructure);//根据参数初始化GPIOA的引脚
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+    RCC_ADCCLKConfig(RCC_PCLK2_Div6);//ADC时钟设置为PCLK2的6分频，即12MHz
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);//
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3,ENABLE);//使能TIM3时钟
-    TIM_DeInit(TIM3);//复位TIM3
-    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;//定义结构体
-    TIM_TimeBaseStructure.TIM_Period = 65535;//根据个人需求进行配置       
-	TIM_TimeBaseStructure.TIM_Prescaler = 8;  //预分频值
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//输入时钟不分频
-	TIM_TimeBaseStructure.TIM_CounterMode =	TIM_CounterMode_Up; 	//向上计数
-	TIM_TimeBaseInit(TIM3,&TIM_TimeBaseStructure);
+    GPIO_InitTypeDef GPIO_A;
+    GPIO_A.GPIO_Mode=GPIO_Mode_AIN;//模拟输入
+    GPIO_A.GPIO_Pin=GPIO_Pin_0;
+    GPIO_Init(GPIOA,&GPIO_A);
 
-    TIM_ICInitTypeDef TIM_ICInitStructure;//定义结构体
-    TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
-	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;     //捕捉上升沿
-	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;    //捕捉中断
-	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;       //捕捉不分频
-	TIM_ICInitStructure.TIM_ICFilter = 0x3;          //捕捉输入滤波
-	TIM_ICInit(TIM3, &TIM_ICInitStructure);
+    ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);//ADC1,通道0,采样时间为55.5个周期
+    ADC_InitTypeDef ADC_1;
+    ADC_1.ADC_Mode=ADC_Mode_Independent;//独立模式
+    ADC_1.ADC_DataAlign=ADC_DataAlign_Right;//右对齐
+    ADC_1.ADC_ExternalTrigConv=ADC_ExternalTrigConv_None;//软件触发
+    ADC_1.ADC_NbrOfChannel=1;//1个转换通道
+    ADC_1.ADC_ScanConvMode=DISABLE;//非扫描模式
+    ADC_1.ADC_ContinuousConvMode=ENABLE;//连续转换模式
+    ADC_Init(ADC1,&ADC_1);
 
-    TIM_ClearFlag(TIM3, TIM_FLAG_Update);  //清除溢出标志
-    NVIC_InitTypeDef NVIC_InitStructure;  //定义结构体
-	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);	  
+    DMA_InitTypeDef DMA_InitStructure;
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;//要传输的数据的地址,外设
+    DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)AddrB;//存放数据的地址,内存
+    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;//数据传输方向,外设到内存就是由A到B
+    DMA_InitStructure.DMA_BufferSize = 1;//数据传输量,给传输寄存器的值
+    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;//要传输的地址不自增
+    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;//要储存的地址自增
+    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;//外设数据长度为16位
+    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;//内存数据长度为16位
+    DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;//循环模式
+    DMA_InitStructure.DMA_Priority = DMA_Priority_High;//优先级高
+    DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;//非内存到内存模式+
+    DMA_Init(DMA1_Channel1,&DMA_InitStructure);//初始化DMA1的通道1
+    DMA_Cmd(DMA1_Channel1,ENABLE);//开启DMA1的通道1
+    ADC_Cmd(ADC1,ENABLE);
+    ADC_DMACmd(ADC1,ENABLE);//使能ADC1的DMA
 
-    TIM_ClearFlag(TIM3,TIM_FLAG_Update);
-	TIM_ARRPreloadConfig(TIM3,DISABLE);
+
+
+    ADC_ResetCalibration(ADC1);//复位校准
+    while(ADC_GetResetCalibrationStatus(ADC1)==SET);//等待复位校准结束
+    ADC_StartCalibration(ADC1);//开始校准
+    while(ADC_GetCalibrationStatus(ADC1)==SET);//等待校准结束
+    ADC_SoftwareStartConvCmd(ADC1,ENABLE);//开始转换
+}
+
+void TIM1_Init(void)
+{
 	
-	/* Enable the CC2 Interrupt Request */
-	TIM_ITConfig(TIM3, TIM_IT_CC1|TIM_IT_Update , ENABLE);						
-    /* TIM enable counter */
-	TIM_Cmd(TIM3, ENABLE);
-
 }
-
-uint16_t IC_GetFrequency()
-{
-    return 8000000/tmp16_CH1;
-}
-
-void TIM3_IRQHandler(void)                        //定时器中断
-{
-	//频率缓冲区计数
-	static u32 this_time_CH1 = 0;
-	static u32 last_time_CH1 = 0;
-	static u8 capture_number_CH1 = 0;
-    static u8 CH1_Cycles_Count=0;
-
-
-		
-	if (TIM_GetITStatus(TIM3,TIM_IT_Update) != RESET)       //计数器更新中断
-	{
-		  TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-		  //溢出次数通道1、2分开统计
-		  CH1_Cycles_Count++;
-	}
-	if(TIM_GetITStatus(TIM3, TIM_IT_CC1) != RESET)   //通道1脉冲检测中断
-	{
-			TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
-			if(capture_number_CH1 == 0)                          //收到第一个上升沿
-			{
-				capture_number_CH1 = 1;
-				last_time_CH1 = TIM_GetCapture1(TIM3);
-			}
-			else if(capture_number_CH1 == 1)                     //收到第二个上升沿
-			{
-				//capture_number_CH1 = 0;
-				this_time_CH1 = TIM_GetCapture1(TIM3);
-				if(this_time_CH1 > last_time_CH1)
-				{
-					tmp16_CH1 = this_time_CH1 - last_time_CH1 + 65536* CH1_Cycles_Count;
-				}
-				else
-				{
-					tmp16_CH1 = 65536 * CH1_Cycles_Count - last_time_CH1 + this_time_CH1;
-				}			
-				CH1_Cycles_Count = 0;
-				last_time_CH1 = this_time_CH1;	
-			}							
-	}
-}
-
-

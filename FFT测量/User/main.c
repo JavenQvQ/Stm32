@@ -8,66 +8,22 @@
 uint16_t frequency=1000;
 uint16_t frequency_Set=1;
 uint8_t KeyCode;
+uint16_t ADC_Value;
 int main()
 {
 	OLED_Init();
 	PWM_Init();
-	IC_Init();
+	ADC1_Init((uint32_t)&ADC_Value);
 	Key_Init();
 	
 	while(1)
 	{
+		OLED_ShowNum(1,1,ADC_Value,4);
 		KeyCode=KEY_FIFO_Get();
-		switch (KeyCode)
-		{
-		case KEY_1_DOWN:
-		{
-			frequency_Set=frequency_Set+1;
-			if(frequency_Set>=10000)
-			frequency_Set=1;
-			
-			OLED_ShowNum(2,1,frequency_Set,7);
-		}break;
-		case KEY_1_LONG:
-		{
-			frequency_Set=frequency_Set+100;
-			if(frequency_Set>=10000)
-			frequency_Set=1;
-			OLED_ShowNum(2,1,frequency_Set,7);
-		}
-		case KEY_2_DOWN:
-		{
-			frequency_Set=frequency_Set-1;
-			if(frequency_Set==1)
-			frequency_Set=10000;
-			OLED_ShowNum(2,1,frequency_Set,7);
-		}break;
-		case KEY_2_LONG:
-		{
-			frequency_Set=frequency_Set-1;
-			if(frequency_Set==1)
-			frequency_Set=10000;
-			OLED_ShowNum(2,1,frequency_Set,7);		
-		}break;
-		case KEY_3_LONG:
-		{
-			frequency_Set=frequency_Set-100;
-			if(frequency_Set<=100)
-			frequency_Set=10000;
-			OLED_ShowNum(2,1,frequency_Set,7);
-		}break;
-		}
-		if(frequency_Set!=frequency)
-		{
-		frequency=frequency_Set;
-		PWM_SetFrequency(frequency);			
-		}//显示频率
-		Delay_ms(50);
-		OLED_ShowNum(1,1,IC_GetFrequency(),7);
-	}
-	
-} 
 
+	
+ 	} 
+}
   
 
 

@@ -126,8 +126,8 @@ void TIM_DeInit(TIM_TypeDef* TIMx)
  
   if (TIMx == TIM1)
   {
-    RCC_APB2PeriphResetCmd(RCC_APB2Periph_TIM1, ENABLE);
-    RCC_APB2PeriphResetCmd(RCC_APB2Periph_TIM1, DISABLE);  
+    RCC_APB2PeriphResetCmd(RCC_APB2Periph_TIM1, ENABLE);//使能TIM1复位
+    RCC_APB2PeriphResetCmd(RCC_APB2Periph_TIM1, DISABLE);
   }     
   else if (TIMx == TIM2)
   {
