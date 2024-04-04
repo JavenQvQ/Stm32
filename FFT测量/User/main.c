@@ -4,7 +4,8 @@
 #include "oled.h"
 #include "PWM.h"
 #include "IC.h"
-#include "table_fft.h"
+#include "stm32_dsp.h"
+#include "math.h"
 #define NPT 1024
 uint32_t InBufArray[1024];//存放ADC值
 uint32_t OutBufArray[512];//存放FFT变换后的值
@@ -17,7 +18,8 @@ void GetPowerMag()
     signed short lX,lY;
     float X,Y,Mag;
     unsigned short i;
-	u16 temp;
+    uint32_t MaxMag = 0;//最大幅值
+    uint32_t MaxMagIndex = 0;//最大幅值的下标
     for(i=0; i<512; i++)
     {
         lX  = (OutBufArray[i] << 16) >> 16;
@@ -31,8 +33,14 @@ void GetPowerMag()
             MagBufArray[i] = (unsigned long)(Mag * 32768);
         else
             MagBufArray[i] = (unsigned long)(Mag * 65536);   //MagBufArray[]为计算输出的幅值数组
-    }
+        if(MagBufArray[i] > MaxMag)//找到最大幅值和对应的下标
+        {
+            MaxMag = MagBufArray[i];
+            MaxMagIndex = i;
+        }
 
+    }
+        OLED_ShowNum(1,1,MaxMagIndex*3.90625,5);//显示最大幅值的下标
 }
 
 
@@ -41,20 +49,18 @@ int main()
 	
 	OLED_Init();
 	ADC1_Init();
-	Key_Init();
+    PWM_Init();//初始化PWM
+    PWM_SetFrequency(1000);//设置PWM频率
 	while(1)
 	{
 		if(flag==1)
 		{
+            DMA_Cmd(DMA1_Channel1,DISABLE);
 			flag=0;
-			cr4_fft_1024_stm32(InBufArray,OutBufArray,1024);//FFT算法
+			cr4_fft_1024_stm32(OutBufArray,InBufArray,1024);//FFT算法
 			GetPowerMag();//计算幅值
+            DMA_Cmd(DMA1_Channel1,ENABLE);//开启DMA1的通道1
 		}
-
-		
-
-
-	
  	} 
 }
   

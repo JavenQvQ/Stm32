@@ -2,26 +2,34 @@
 uint16_t ADC_Value[1024];//存放ADC值
 extern uint32_t InBufArray[1024];//存放ADC值
 extern u8 flag;
+
+//采样频率为TIM生成的PWM信号频率,为4khz
+//采样点数为1024
+//分辨率为采样频率/采样点数=4khz/1024=3.90625hz
+//ADC转换时间为55.5个周期,即13.5/12M=1.125us
+
 void TIM1_Init(void)
 {
 		TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 		TIM_OCInitTypeDef TIM_OCInitStructure;
 		
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); 		//时钟使能,不能用TIM1!TIM1是高级定时器!
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE); 		//时钟使能,不能用TIM1!TIM1是高级定时器,得加TIM_CtrlPWMOutputs(TIM1,ENABLE)函数
 
 		TIM_TimeBaseStructure.TIM_Period = 1000-1; 		//设置在下一个更新事件装入活动的自动重装载寄存器周期的值
-		TIM_TimeBaseStructure.TIM_Prescaler =72-1; 			//设置用来作为TIMx时钟频率除数的预分频值
+		TIM_TimeBaseStructure.TIM_Prescaler =18-1; 			//设置用来作为TIMx时钟频率除数的预分频值
 		TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//设置时钟分割:不分割
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; 		//TIM向上计数模式
-		TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);			//根据指定的参数初始化TIMx的时间基数单位
+		TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);			//根据指定的参数初始化TIMx的时间基数单位
 		
+        TIM_OCStructInit(&TIM_OCInitStructure);
 		TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;		//选择定时器模式:TIM脉冲宽度调制模式1
 		TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;		//比较输出使能
 		TIM_OCInitStructure.TIM_Pulse = 9;
 		TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;		//输出极性:TIM输出比较极性低
-		TIM_OC2Init(TIM2, & TIM_OCInitStructure);		//初始化外设TIM2_CH2
-		
-		TIM_Cmd(TIM2, ENABLE); 			//使能TIMx
+		TIM_OC2Init(TIM1, & TIM_OCInitStructure);		//初始化外设TIM2_CH2
+		//TIM_GenerateEvent(TIM2,TIM_EventSource_Update);		//使能TIM2在CCR2上的预装载寄存器
+		TIM_Cmd(TIM1, ENABLE); 			//使能TIMx
+        TIM_CtrlPWMOutputs(TIM1,ENABLE);//使能TIM1的PWM输出
 }
 
 void DMA1_Init(void)
@@ -67,11 +75,11 @@ void ADC1_Init(uint32_t AddrB)
     GPIO_A.GPIO_Pin=GPIO_Pin_0;
     GPIO_Init(GPIOA,&GPIO_A);
 
-    ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);//ADC1,通道0,采样时间为55.5个周期
+    ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_13Cycles5);//ADC1,通道0,采样时间为1.5个周期
     ADC_InitTypeDef ADC_1;
     ADC_1.ADC_Mode=ADC_Mode_Independent;//独立模式
     ADC_1.ADC_DataAlign=ADC_DataAlign_Right;//右对齐
-    ADC_1.ADC_ExternalTrigConv= ADC_ExternalTrigConv_T2_CC2;//外部触发源选择
+    ADC_1.ADC_ExternalTrigConv= ADC_ExternalTrigConv_T1_CC2;//外部触发源选择
     ADC_1.ADC_NbrOfChannel=1;//1个转换通道
     ADC_1.ADC_ScanConvMode=DISABLE;//非扫描模式
     ADC_1.ADC_ContinuousConvMode=DISABLE;//连续转换模式
@@ -100,7 +108,7 @@ void  DMA1_Channel1_IRQHandler(void)
 			InBufArray[i] = ((signed short)(ADC_Value[i])) << 16;	
 		}
 		DMA_ClearITPendingBit(DMA1_IT_TC1);
-        flag = 1;
+        flag=1;
 	}
 }
 

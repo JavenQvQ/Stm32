@@ -19,7 +19,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 //#include "stm32f10x_lib.h"
-#include "stm32f1xx_hal.h"
+#include "stm32f10x.h"
 
 #define u8 uint8_t
 #define u16 uint16_t
