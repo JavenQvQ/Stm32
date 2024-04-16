@@ -4,7 +4,7 @@
 #include "key.h"
 #define KEY_FILTER_TIME 5//按键滤波时间
 #define KEY_NUM 3 //按键数量
-KEY_T s_tBtn[3]= {0};//按键数组
+KEY_T s_tBtn[KEY_NUM]= {0};//按键数组
 static Key_FIFO s_tKey;
 
 /*
@@ -86,7 +86,7 @@ static uint8_t IsKey3Down(void)
 static void KEY_Detect(uint8_t i)
 {
     KEY_T *pBtn;
-    pBtn = &s_tBtn[i];
+    pBtn = &s_tBtn[i];//获取按键结构体
     if (pBtn->IsKeyDownFunc()) //判断按键是否按下,没有按下则直接跳到else
     {
         if (pBtn->Count < KEY_FILTER_TIME) //按键计数器会被置为 KEY_FILTER_TIME
@@ -103,24 +103,26 @@ static void KEY_Detect(uint8_t i)
             {
                 pBtn->State = 1;
                 KEY_FIFO_Put((uint8_t)(3 * i + 1));
+                return;
             }
             //长按
             if (pBtn->LongTime > 0)
             {
                 if (pBtn->LongCount < pBtn->LongTime) /*LongTime初始值是1000，持续1秒，认为长按事件*/
                 {
-                    if (++pBtn->LongCount == pBtn->LongTime) /*LongCount等于LongTime(100),10ms进来一次，进来了100次也就是说按下时间为于1s*/
+                    if (++pBtn->LongCount == pBtn->LongTime) /*LongCount等于LongTime(1000),10ms进来一次，进来了1000次也就是说按下时间为于10s*/
                     {
+                        OLED_ShowNum(3,1,pBtn->LongCount,4);
                         KEY_FIFO_Put((uint8_t)(3 * i + 3));
                     }
                 }
-                else /*LongCount大于LongTime(100)时执行此语句,也就是说按下时间大于1s*/
+                else /*LongCount大于LongTime(1000)时执行此语句,也就是说按下时间大于1s*/
                 {
                     if (pBtn->RepeatSpeed > 0) /* RepeatSpeed连续按键周期 */
                     {
                         if (++pBtn->RepeatCount >= pBtn->RepeatSpeed)
                         {
-                            /* 长按键后，每隔10ms发送1个按键。因为长按也是要发送键值得，10ms发送一次。*/
+                            /* 长按键后，每隔10ms发送1个按键。因为长按也是要发送键值的，10ms发送一次。*/
                             pBtn->RepeatCount = 0;
                             KEY_FIFO_Put((uint8_t)(3 * i + 3));
                         }
@@ -157,12 +159,45 @@ static void KEY_Detect(uint8_t i)
 void KEY_Scan(void)
 {
  uint8_t i;
-
  for (i = 0; i < KEY_NUM; i++)
  {
   KEY_Detect(i);
  }
-
+}
+/*
+ * 按键功能处理函数
+ ** 功能：根据按键的键值，执行相应的功能。需要在对应的case语句中添加相应的功能代码。
+ ** FIFO缓冲区可以存储10个按键事件，如果按键处理函数执行速度过慢，可能会导致按键事件丢失。如果按键扫描函数10ms执行一次，那么按键处理函数可以100-10ms执行一次。
+ ** 移植说明:需要添加按键的功能处理代码
+ */
+void KEY_Function(void)
+{
+    uint8_t key_temp;
+    key_temp = KEY_FIFO_Get();
+    switch (key_temp)
+    {
+        case KEY_1_DOWN:
+        /*
+        添加按键1按下的处理代码
+        */
+        OLED_ShowString(1,1,"KEY1 DOWN");
+        break;
+        case KEY_1_LONG:
+        OLED_ShowString(2,1,"KEY1 LONG");
+        break;
+        case KEY_1_UP:
+        break;
+        case KEY_2_DOWN:
+        break;
+        case KEY_2_LONG:
+        break;
+        case KEY_3_DOWN:
+        break;
+        case KEY_3_LONG:
+        break;
+        default:
+        break;
+    }
 }
 
 
@@ -178,7 +213,7 @@ void Timer4_Init(void)
 	TIM_ClearFlag(TIM4,TIM_FLAG_Update);//清除更新标志
 
 	NVIC_InitTypeDef NVIC_t;//初始化NVIC
-	NVIC_t.NVIC_IRQChannel=TIM4_IRQn;//TIM4中断
+	NVIC_t.NVIC_IRQChannel= TIM4_IRQn ;//TIM4中断
 	NVIC_t.NVIC_IRQChannelCmd=ENABLE;//使能中断
 	NVIC_t.NVIC_IRQChannelPreemptionPriority=1;//抢占优先级
 	NVIC_t.NVIC_IRQChannelSubPriority=1;//子优先级
@@ -189,9 +224,11 @@ void Timer4_Init(void)
 }
 	
 
-	
-
-
+/*********************************************************************************************************
+** 函数名称: Key_Init	
+** 功能描述: 按键初始化
+** 移植说明: 需要添加GPIO初始化代码,s_tBtn.IsKeyDownFunc里的按键按下函数
+*********************************************************************************************************/
 void Key_Init()//按键初始化
 {
 	//Timer4_Init();//定时器初始化

@@ -1,7 +1,7 @@
 #ifndef __KEY_h
 #define __KEY_h
 void Key_Init(void );
-
+void KEY_Function(void);
 void KEY_FIFO_Put(uint8_t _KeyCode);
 void KEY_Scan(void);
 uint8_t KEY_FIFO_Get(void);
@@ -27,6 +27,9 @@ typedef struct
  uint8_t  RepeatCount; /* 连续按键计数器 */
 }KEY_T;
 
+/************************************************************
+** 移植说明：一个按键对应3个状态，分别是按下、弹起、长按,每个状态对应一个键值 
+*/
 typedef enum
 {
  KEY_NONE = 0,   /* 0 表示按键事件 */

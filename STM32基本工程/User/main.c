@@ -7,29 +7,16 @@
 #define Task1_ID 1//任务1的ID
 void TASK1(void)
 {
-	uint8_t key;
-	key= KEY_FIFO_Get();
-	if(key==KEY_1_DOWN)
-	{
-		OLED_ShowString(1,1,"KEY1 DOWN");
-	}
-	else if(key==KEY_1_UP)
-	{
-		OLED_ShowString(2,1,"KEY1 UP");
-	}
-	else if(key==KEY_1_LONG)
-	{
-		OLED_ShowString(3,1,"KEY1 LONG");
-	}
+	KEY_Function();
 }
 
 int main(void)
 {
 	/*模块初始化*/
 	OLED_Init();		//OLED初始化
-	SysTick_Config(72000);	//定时器初始化
+	SysTick_Config(720000);	//定时器初始化,10ms进入一次中断
 	Key_Init();		//按键初始化
-	AddTask(Task1_ID, 20, TASK1);	//添加任务1
+	AddTask(Task1_ID, 100, TASK1);	//添加任务1
 	while (1)
 	{
 		
