@@ -177,7 +177,7 @@ void TASK_OS(void)
 	for(int i = 0; i < g_nTimerInfoNum; i++)  
 	{
 		TaskInfoArray[i].CNT -= TASK_BASE_INTERVAL;      
-		if((TaskInfoArray[i].CNT == 0)||(TaskInfoArray[i].CNT>TaskInfoArray[i].Task_Time))
+		if((TaskInfoArray[i].CNT == 0)||(TaskInfoArray[i].CNT>TaskInfoArray[i].Task_Time))//定时时间到了
 		{
 			TaskInfoArray[i].CNT = TaskInfoArray[i].Task_Time;//重新装载定时器            
 			(*(TaskInfoArray[i].pFunction))();//执行函数

@@ -5,7 +5,7 @@
 
 typedef unsigned char BYTE;
 typedef unsigned int WORD;
-typedef unsigned long DWORD;
+typedef unsigned long DWORD;//定义DWORD为32位无符号整数
 typedef float FLOAT;
 typedef char CHAR;
 typedef unsigned char UCHAR;
