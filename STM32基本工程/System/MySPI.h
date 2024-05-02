@@ -14,6 +14,10 @@ void MySPI_Stop(void);//停止传输
 
 void MySPI_Hardware_Init(void);//硬件初始化SPI
 uint8_t MySPI_Hardware_SwapByte(uint8_t Byte);//硬件SPI交换数据
+void MySPI_Hardware_WriteBytes(uint8_t *buf, int len);//硬件SPI写入数据
+void MySPI_Hardware_ReadBytes(uint8_t *buf, int len);//硬件SPI读取数据
+
+void PB4_ExintSet(u8 en);//MISO外部中断设置
 
 
 #endif

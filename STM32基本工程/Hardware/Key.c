@@ -110,9 +110,8 @@ static void KEY_Detect(uint8_t i)
             {
                 if (pBtn->LongCount < pBtn->LongTime) /*LongTime初始值是1000，持续1秒，认为长按事件*/
                 {
-                    if (++pBtn->LongCount == pBtn->LongTime) /*LongCount等于LongTime(1000),10ms进来一次，进来了1000次也就是说按下时间为于10s*/
+                    if (++pBtn->LongCount == pBtn->LongTime) /*LongCount等于LongTime(100),10ms进来一次，进来了100次也就是说按下时间为于1s*/
                     {
-                        OLED_ShowNum(3,1,pBtn->LongCount,4);
                         KEY_FIFO_Put((uint8_t)(3 * i + 3));
                     }
                 }
@@ -173,6 +172,7 @@ void KEY_Scan(void)
 void KEY_Function(void)
 {
     uint8_t key_temp;
+    static uint8_t key_long_flag[KEY_NUM]= 0;//长按标志,长按函数和松开函数分开执行
     key_temp = KEY_FIFO_Get();
     switch (key_temp)
     {
@@ -183,9 +183,23 @@ void KEY_Function(void)
         OLED_ShowString(1,1,"KEY1 DOWN");
         break;
         case KEY_1_LONG:
-        OLED_ShowString(2,1,"KEY1 LONG");
+        {
+            OLED_ShowString(1,1,"KEY1 LONG");
+            key_long_flag[0]=1;
+        }
         break;
         case KEY_1_UP:
+        {
+            if(key_long_flag[0]==0)
+            {
+                /*
+                添加按键1抬起的处理代码
+                */
+                OLED_ShowString(1,1,"KEY1 UP");
+                
+            }
+            key_long_flag[0]=0;
+        }
         break;
         case KEY_2_DOWN:
         break;
@@ -247,7 +261,7 @@ void Key_Init()//按键初始化
  /* 给每个按键结构体成员变量赋一组缺省值 */
  	for (i = 0; i < KEY_NUM; i++)
 	{
-  	s_tBtn[i].LongTime = 1000;/* 长按时间 0 表示不检测长按键事件 */
+  	s_tBtn[i].LongTime = 100;/* 长按时间 0 表示不检测长按键事件 */
   	s_tBtn[i].Count = 5/ 2; /* 计数器设置为滤波时间的一半 */
     s_tBtn[i].LongCount = 0;/* 长按计数器 */
   	s_tBtn[i].State = 0;/* 按键缺省状态，0为未按下 */
