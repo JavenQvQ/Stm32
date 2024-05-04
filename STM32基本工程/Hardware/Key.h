@@ -27,7 +27,7 @@ typedef struct
  uint8_t  RepeatCount; /* 连续按键计数器 */
  uint8_t  DoubleTime;  /* 双击间隔时间,0表示不检测双击*/
  uint16_t  DoubleCount; /* 双击计数器 */
- uint8_t  Flag;
+ uint8_t  DoubleFlag;
 }KEY_T;
 
 /************************************************************

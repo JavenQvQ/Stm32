@@ -103,7 +103,7 @@ static void KEY_Detect(uint8_t i)
             if (pBtn->State == 0)
             {
                 pBtn->State = 1;
-                if(pBtn->Flag == 0)
+                if(pBtn->DoubleFlag == 0)
                     KEY_FIFO_Put((uint8_t)(3 * i + 1));
                 return;
             }
@@ -148,24 +148,24 @@ static void KEY_Detect(uint8_t i)
             if (pBtn->State == 1)
             {
                 pBtn->State = 0;
-                pBtn->Flag = 1;
+                pBtn->DoubleFlag = 1;
                 if(pBtn->DoubleCount < pBtn->DoubleTime)
                 {
                     pBtn->DoubleCount = pBtn->DoubleTime;
-                    pBtn->Flag = 0;
+                    pBtn->DoubleFlag = 0;
                     KEY_FIFO_Put((uint8_t)(i + 10));
-                    OLED_ShowString(2,1,"KEY1 DOUBLE");
+
                 }
             }
             
-            if(pBtn->DoubleCount!=0&&pBtn->Flag==1)
+            if(pBtn->DoubleCount!=0&&pBtn->DoubleFlag==1)
             {
                 pBtn->DoubleCount--;
             }
-            else if(pBtn->DoubleCount==0&&pBtn->Flag==1)
+            else if(pBtn->DoubleCount==0&&pBtn->DoubleFlag==1)
             {
                 KEY_FIFO_Put((uint8_t)(3 * i + 2));
-                pBtn->Flag = 0;
+                pBtn->DoubleFlag = 0;
                 pBtn->DoubleCount = pBtn->DoubleTime;
             }
                 
@@ -237,6 +237,14 @@ void KEY_Function(void)
             添加按键1双击的处理代码
             */
             OLED_ShowString(1,1,"KEY1 DOUBLE");
+        }
+        break;
+        case KEY_2_Double:
+        {
+            /*
+            添加按键1双击的处理代码
+            */
+            OLED_ShowString(3,1,"KEY2 DOUBLE");
         }
         break;
         default:
