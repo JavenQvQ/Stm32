@@ -1,5 +1,6 @@
 #include "stm32f10x.h" // Device header
-
+#include "OLED.h"
+#include "stm32f10x_it.h"
 
 #include "key.h"
 #define KEY_FILTER_TIME 5//按键滤波时间
@@ -102,7 +103,8 @@ static void KEY_Detect(uint8_t i)
             if (pBtn->State == 0)
             {
                 pBtn->State = 1;
-                KEY_FIFO_Put((uint8_t)(3 * i + 1));
+                if(pBtn->Flag == 0)
+                    KEY_FIFO_Put((uint8_t)(3 * i + 1));
                 return;
             }
             //长按
@@ -140,14 +142,33 @@ static void KEY_Detect(uint8_t i)
         else if(pBtn->Count != 0)
         {
             pBtn->Count--;
-        }
+        }            
         else
         {
             if (pBtn->State == 1)
             {
                 pBtn->State = 0;
-                KEY_FIFO_Put((uint8_t)(3 * i + 2));
+                pBtn->Flag = 1;
+                if(pBtn->DoubleCount < pBtn->DoubleTime)
+                {
+                    pBtn->DoubleCount = pBtn->DoubleTime;
+                    pBtn->Flag = 0;
+                    KEY_FIFO_Put((uint8_t)(i + 10));
+                    OLED_ShowString(2,1,"KEY1 DOUBLE");
+                }
             }
+            
+            if(pBtn->DoubleCount!=0&&pBtn->Flag==1)
+            {
+                pBtn->DoubleCount--;
+            }
+            else if(pBtn->DoubleCount==0&&pBtn->Flag==1)
+            {
+                KEY_FIFO_Put((uint8_t)(3 * i + 2));
+                pBtn->Flag = 0;
+                pBtn->DoubleCount = pBtn->DoubleTime;
+            }
+                
         }
         pBtn->LongCount = 0; //长按计数器清零
         pBtn->RepeatCount = 0;
@@ -172,7 +193,7 @@ void KEY_Scan(void)
 void KEY_Function(void)
 {
     uint8_t key_temp;
-    static uint8_t key_long_flag[KEY_NUM]= 0;//长按标志,长按函数和松开函数分开执行
+    static uint8_t key_long_flag[KEY_NUM]= {0};//长按标志,长按函数和松开函数分开执行
     key_temp = KEY_FIFO_Get();
     switch (key_temp)
     {
@@ -202,12 +223,21 @@ void KEY_Function(void)
         }
         break;
         case KEY_2_DOWN:
+        OLED_Clear();
         break;
         case KEY_2_LONG:
         break;
         case KEY_3_DOWN:
         break;
         case KEY_3_LONG:
+        break;
+        case KEY_1_Double:
+        {
+            /*
+            添加按键1双击的处理代码
+            */
+            OLED_ShowString(1,1,"KEY1 DOUBLE");
+        }
         break;
         default:
         break;
@@ -267,6 +297,8 @@ void Key_Init()//按键初始化
   	s_tBtn[i].State = 0;/* 按键缺省状态，0为未按下 */
   	s_tBtn[i].RepeatSpeed = 100;/* 按键连发的速度，0表示不支持连发,数值表示按下时间间隔 */
   	s_tBtn[i].RepeatCount = 0;/* 连发计数器 */
+    s_tBtn[i].DoubleTime =30;/* 双击间隔时间=30*10ms */ 
+    s_tBtn[i].DoubleCount = 30;/* 双击计数器 */
  	}
  /* 判断按键按下的函数 */
  	s_tBtn[0].IsKeyDownFunc = IsKey1Down;

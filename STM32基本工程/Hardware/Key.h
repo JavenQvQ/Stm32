@@ -25,6 +25,9 @@ typedef struct
  uint8_t  State;   /* 按键当前状态（按下还是弹起） */
  uint8_t  RepeatSpeed; /* 连续按键周期 */
  uint8_t  RepeatCount; /* 连续按键计数器 */
+ uint8_t  DoubleTime;  /* 双击间隔时间,0表示不检测双击*/
+ uint16_t  DoubleCount; /* 双击计数器 */
+ uint8_t  Flag;
 }KEY_T;
 
 /************************************************************
@@ -45,6 +48,10 @@ typedef enum
  KEY_3_DOWN,    /* 3键按下 */
  KEY_3_UP,    /* 3键弹起 */
  KEY_3_LONG,    /* 3键长按 */
+
+ KEY_1_Double,   /* 1键双击 */
+ KEY_2_Double,   /* 2键双击 */
+ KEY_3_Double,   /* 3键双击 */
 }KEY_ENUM;
 
 
