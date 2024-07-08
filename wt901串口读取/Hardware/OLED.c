@@ -274,7 +274,7 @@ void OLED_ShowFloat(uint8_t Line, uint8_t Column, float Number)
 {
 
 	char String[40];
-	sprintf(String, "%.5f", Number);
+	sprintf(String, "%.3f", Number);
 	if (Number >= 0)
 	{
 		OLED_ShowChar(Line, Column, '+');
