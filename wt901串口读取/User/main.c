@@ -9,7 +9,7 @@
 #define Task1_ID 1//任务1的ID
 void TASK1(void)
 {
-	KEY_Scan();
+	Wt901bc_Read();		//读取WT901BC加速度数据
 }
 
 int main(void)
@@ -19,15 +19,18 @@ int main(void)
 	SysTick_Config(72000);	//定时器初始化,1ms进入一次中断
 	Key_Init();		//按键初始化
 	Serial_Init();		//串口初始化
-	AddTask(Task1_ID, 10, TASK1);	//添加任务1
+
+	/*变量定义*/
+    float Ax,Ay,Az;
+
+
+	AddTask(Task1_ID, 100, TASK1);	//添加任务1
+	
 	while (1)
 	{
-		KEY_Function();		//按键功能函数
+		Wt901bc_AConvert(&Ax,&Ay,&Az);	//转换WT901BC加速度数据
+		OLED_ShowFloat(1, 1, Az);
 
-		if (Serial_GetRxFlag()==1)
-		{
-			OLED_ShowHexNum(1,1,Serial_RxPacket[0],8);
-		}
 		
 	}
 }
