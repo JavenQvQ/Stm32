@@ -4,7 +4,11 @@
 
 uint8_t Serial_TxPacket[4];				//定义发送数据包数组，数据包格式：FF 01 02 03 04 FE
 uint8_t Serial_RxPacket[4];				//定义接收数据包数组
+<<<<<<< HEAD
 uint8_t Serial_RxFlag;					//定义接收数据包标志位
+=======
+uint8_t Serial_RxFlag;					  //定义接收数据包标志位
+>>>>>>> ad59c112d1b9edf00f481f51b4a2b43c1075def3
 
 /**
   * 函    数：串口初始化
@@ -183,7 +187,11 @@ uint8_t Serial_GetRxFlag(void)
 }
 
 /**
+<<<<<<< HEAD
   * 函    数：USART1中断函数
+=======
+  * 函    数：USART1中断函数,接收Hex数据包
+>>>>>>> ad59c112d1b9edf00f481f51b4a2b43c1075def3
   * 参    数：无
   * 返 回 值：无
   * 注意事项：此函数为中断函数，无需调用，中断触发后自动执行
@@ -231,6 +239,12 @@ void USART1_IRQHandler(void)
 		
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);		//清除标志位
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);		//清除标志位
+<<<<<<< HEAD
 	}
 }
 
+=======
+}
+
+
+>>>>>>> ad59c112d1b9edf00f481f51b4a2b43c1075def3

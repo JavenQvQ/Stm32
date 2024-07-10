@@ -3,8 +3,9 @@
 #include <stdarg.h>
 
 uint8_t Serial_TxPacket[4];				//定义发送数据包数组，数据包格式：FF 01 02 03 04 FE
-uint8_t Serial_RxPacket[4];				//定义接收数据包数组
-uint8_t Serial_RxFlag;					//定义接收数据包标志位
+uint8_t Serial_RxPacket[11];				//定义接收数据包数组
+uint8_t Serial_RxFlag;					  //定义接收数据包标志位
+uint8_t wt901bc_rxA[11];					//定义接收数据包数组
 
 /**
   * 函    数：串口初始化
@@ -183,7 +184,7 @@ uint8_t Serial_GetRxFlag(void)
 }
 
 /**
-  * 函    数：USART1中断函数
+  * 函    数：USART1中断函数,接收Hex数据包
   * 参    数：无
   * 返 回 值：无
   * 注意事项：此函数为中断函数，无需调用，中断触发后自动执行
@@ -194,49 +195,80 @@ void USART1_IRQHandler(void)
 {
     static uint8_t RxState = 0;//接收状态
     static uint8_t pRxpacket=0;//接收数据次数
+ 
     if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)//接收中断
     {
         uint8_t  Serial_RxData= USART_ReceiveData(USART1);
         switch (RxState)
         {
             case 0:
-                if (Serial_RxData == 0xff)
+                if(Serial_RxData==0x50)
                 {
-                    RxState = 1;
-                    pRxpacket = 0;
+                  RxState = 1;
+                  pRxpacket = 0;
                 }
+
                 break;
             case 1:
-                Serial_RxPacket[pRxpacket] = Serial_RxData;
-                pRxpacket++;
-                if (pRxpacket >= 4)
+                if(Serial_RxData==0x03)
                 {
+                  RxState = 2;
+                  pRxpacket = 0;
+                }
+            case 2:
+                if (Serial_RxData==0x06)
+                {
+                    RxState = 3;
                     pRxpacket = 0;
-                    RxState = 2;
                 }
                 break;
-            case 2:
-                if (Serial_RxData == 0xfe)
+            case 3:
+                wt901bc_rxA[pRxpacket] = Serial_RxData;
+                pRxpacket++;
+                if (pRxpacket >= 8)
                 {
-                    Serial_RxFlag = 1;//接收完成
-                    RxState = 0;//重新开始接收
-                }
-                else
-                {
-                    RxState = 0;//重新开始接收
+                    pRxpacket = 0;
+                    RxState = 0;
+                    Serial_RxFlag = 1;//接收到数据包
                 }
                 break;
         }
 		}
-		
+
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);		//清除标志位
-		USART_ClearITPendingBit(USART1, USART_IT_RXNE);		//清除标志位
-<<<<<<< HEAD
-	}
 }
-
-=======
+/**
+  * 函    数：读取WT901BC加速度数据
+  * 参    数：无
+  * 返 回 值：无
+  */
+void Wt901bc_Read(void)
+{
+  Serial_SendByte(0x50);//发送读取命令
+  Serial_SendByte(0x03);//发送读取命令
+  Serial_SendByte(0x00);
+  Serial_SendByte(0x34);
+  Serial_SendByte(0x00);
+  Serial_SendByte(0x03);
+  Serial_SendByte(0x49);
+  Serial_SendByte(0x84);
 }
-
-
->>>>>>> ad59c112d1b9edf00f481f51b4a2b43c1075def3
+/**
+  * 函    数：转换WT901BC加速度数据
+  * 参    数：X,Y,Z轴加速度
+  * 返 回 值：无
+  */
+ void Wt901bc_AConvert(float *Ax,float *Ay,float *Az)
+ {
+    int16_t Ax1,Ay1,Az1;
+    if(Serial_RxFlag==1)
+    {
+      Ax1 = (int16_t)(wt901bc_rxA[0]<<8|wt901bc_rxA[1]);
+      Ay1 = (int16_t)(wt901bc_rxA[2]<<8|wt901bc_rxA[3]);
+      Az1 = (int16_t)(wt901bc_rxA[4]<<8|wt901bc_rxA[5]);
+      *Ax = (float)Ax1/32768*16;
+      *Ay = (float)Ay1/32768*16;
+      *Az = (float)Az1/32768*16;
+      Serial_RxFlag = 0;
+    }
+ }
