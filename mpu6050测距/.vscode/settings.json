@@ -1,6 +1,0 @@
-{
-    "C_Cpp.default.compilerPath": "",
-    "files.associations": {
-        "stm32f10x.h": "c"
-    }
-}

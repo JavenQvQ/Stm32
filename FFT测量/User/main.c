@@ -40,7 +40,8 @@ void GetPowerMag()
         }
 
     }
-        OLED_ShowNum(1,1,MaxMagIndex*3.90625,5);//显示最大幅值的下标
+    MaxMagIndex=(float)MaxMagIndex*3.90625*2;
+        OLED_ShowFloat(1,1,MaxMagIndex);//显示最大幅值的下标
 }
 
 

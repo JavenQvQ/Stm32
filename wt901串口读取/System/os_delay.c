@@ -11,7 +11,7 @@ B站：奇遇单片机
 #include "stm32f10x.h"                  // Device header
 
 #define fus 72  //每微妙,时钟个数，这里时钟是72MHZ
-#define TIM_BASE 10000
+#define TIM_BASE 1000
 void delay_init(void)
 {
 	SysTick_Config(720000);
