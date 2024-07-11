@@ -16,7 +16,7 @@ void TIM1_Init(void)
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE); 		//时钟使能,不能用TIM1!TIM1是高级定时器,得加TIM_CtrlPWMOutputs(TIM1,ENABLE)函数
 
 		TIM_TimeBaseStructure.TIM_Period = 1000-1; 		//设置在下一个更新事件装入活动的自动重装载寄存器周期的值
-		TIM_TimeBaseStructure.TIM_Prescaler =18-1; 			//设置用来作为TIMx时钟频率除数的预分频值
+		TIM_TimeBaseStructure.TIM_Prescaler =9-1; 			//设置用来作为TIMx时钟频率除数的预分频值
 		TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//设置时钟分割:不分割
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; 		//TIM向上计数模式
 		TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);			//根据指定的参数初始化TIMx的时间基数单位

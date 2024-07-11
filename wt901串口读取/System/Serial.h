@@ -17,7 +17,6 @@ void Serial_Printf(char *format, ...);
 void Serial_SendPacket(void);
 uint8_t Serial_GetRxFlag(void);
 
-void Wt901bc_Read(void);
-void Wt901bc_AConvert(float *Ax,float *Ay,float *Az);
+void Uart1Send(unsigned char *p_data, unsigned int uiSize);
 
 #endif

@@ -4,12 +4,16 @@
 #include "TIMEEVEN.H"
 #include "KEY.h"
 #include "Serial.h"
-
+#include "os_delay.h"
+#include "wit_c_sdk.h"
 
 #define Task1_ID 1//任务1的ID
+float Ax,Ay,Az;
+
 void TASK1(void)
 {
-	Wt901bc_Read();		//读取WT901BC加速度数据
+
+
 }
 
 int main(void)
@@ -19,19 +23,18 @@ int main(void)
 	SysTick_Config(72000);	//定时器初始化,1ms进入一次中断
 	Key_Init();		//按键初始化
 	Serial_Init();		//串口初始化
+	WitInit(WIT_PROTOCOL_NORMAL, 0x50);//Wit初始化
+	WitSerialWriteRegister();//Wit串口写函数注册
 
 	/*变量定义*/
-    float Ax,Ay,Az;
+
 
 
 	AddTask(Task1_ID, 100, TASK1);	//添加任务1
 	
 	while (1)
 	{
-		Wt901bc_AConvert(&Ax,&Ay,&Az);	//转换WT901BC加速度数据
-		OLED_ShowFloat(1, 1, Az);
 
-		
 	}
 }
 

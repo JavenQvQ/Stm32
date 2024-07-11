@@ -1,4 +1,6 @@
 #include "stm32f10x.h"                  // Device header
+#include "oled.h"
+#include "wit_c_sdk.h"
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -193,82 +195,28 @@ uint8_t Serial_GetRxFlag(void)
   */
 void USART1_IRQHandler(void)
 {
-    static uint8_t RxState = 0;//接收状态
-    static uint8_t pRxpacket=0;//接收数据次数
- 
-    if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)//接收中断
-    {
-        uint8_t  Serial_RxData= USART_ReceiveData(USART1);
-        switch (RxState)
-        {
-            case 0:
-                if(Serial_RxData==0x50)
-                {
-                  RxState = 1;
-                  pRxpacket = 0;
-                }
-
-                break;
-            case 1:
-                if(Serial_RxData==0x03)
-                {
-                  RxState = 2;
-                  pRxpacket = 0;
-                }
-            case 2:
-                if (Serial_RxData==0x06)
-                {
-                    RxState = 3;
-                    pRxpacket = 0;
-                }
-                break;
-            case 3:
-                wt901bc_rxA[pRxpacket] = Serial_RxData;
-                pRxpacket++;
-                if (pRxpacket >= 8)
-                {
-                    pRxpacket = 0;
-                    RxState = 0;
-                    Serial_RxFlag = 1;//接收到数据包
-                }
-                break;
-        }
-		}
-
-		USART_ClearITPendingBit(USART1, USART_IT_RXNE);		//清除标志位
+	unsigned char ucTemp;
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+	{
+		ucTemp = USART_ReceiveData(USART1);
+		WitSerialDataIn(ucTemp);
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+	}
 }
+
 /**
-  * 函    数：读取WT901BC加速度数据
-  * 参    数：无
+  * 函    数：串口发送数据
+  * 参    数：p_data 要发送数据的首地址
+  * 参    数：uiSize 要发送数据的长度
   * 返 回 值：无
   */
-void Wt901bc_Read(void)
-{
-  Serial_SendByte(0x50);//发送读取命令
-  Serial_SendByte(0x03);//发送读取命令
-  Serial_SendByte(0x00);
-  Serial_SendByte(0x34);
-  Serial_SendByte(0x00);
-  Serial_SendByte(0x03);
-  Serial_SendByte(0x49);
-  Serial_SendByte(0x84);
+void Uart1Send(unsigned char *p_data, unsigned int uiSize)
+{	
+	unsigned int i;
+	for(i = 0; i < uiSize; i++)
+	{
+		while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+		USART_SendData(USART1, *p_data++);		
+	}
+	while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
 }
-/**
-  * 函    数：转换WT901BC加速度数据
-  * 参    数：X,Y,Z轴加速度
-  * 返 回 值：无
-  */
- void Wt901bc_AConvert(float *Ax,float *Ay,float *Az)
- {
-    int16_t Ax1,Ay1,Az1;
-    if(Serial_RxFlag==1)
-    {
-      Ax1 = (int16_t)(wt901bc_rxA[0]<<8|wt901bc_rxA[1]);
-      Ay1 = (int16_t)(wt901bc_rxA[2]<<8|wt901bc_rxA[3]);
-      Az1 = (int16_t)(wt901bc_rxA[4]<<8|wt901bc_rxA[5]);
-      *Ax = (float)Ax1/32768*16;
-      *Ay = (float)Ay1/32768*16;
-      *Az = (float)Az1/32768*16;
-      Serial_RxFlag = 0;
-    }
- }

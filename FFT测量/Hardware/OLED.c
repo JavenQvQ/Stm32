@@ -264,6 +264,30 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
 }
 
 /**
+  * @brief  OLED显示浮点数,默认显示5位小数
+  * @param  Line 起始行位置，范围：1~4
+  * @param  Column 起始列位置，范围：1~16
+  * @param  Number 要显示的浮点数
+  * @retval 无
+  */
+void OLED_ShowFloat(uint8_t Line, uint8_t Column, float Number)
+{
+
+	char String[40];
+	sprintf(String, "%.5f", Number);
+	if (Number >= 0)
+	{
+		OLED_ShowChar(Line, Column, '+');
+	}
+	else
+	{
+		OLED_ShowChar(Line, Column, '-');
+	}
+	OLED_ShowString(Line, Column+1, String);
+}
+
+
+/**
   * @brief  OLED初始化
   * @param  无
   * @retval 无
