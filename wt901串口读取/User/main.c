@@ -8,7 +8,6 @@
 #include "wit_c_sdk.h"
 
 #define Task1_ID 1//任务1的ID
-<<<<<<< HEAD
 #define ACC_UPDATE		0x01
 #define GYRO_UPDATE		0x02
 #define ANGLE_UPDATE	0x04
@@ -19,9 +18,6 @@ float Ax,Ay,Az;
 static volatile char s_cDataUpdate = 0;
 static void SensorDataUpdata(uint32_t uiReg, uint32_t uiRegNum);
 
-=======
-float Ax,Ay,Az;
->>>>>>> 8b2e04583b9112604f3da1f07056752f181bd777
 
 void TASK1(void)
 {
@@ -37,7 +33,6 @@ int main(void)
 	Key_Init();		//按键初始化
 	Serial_Init();		//串口初始化
 	WitInit(WIT_PROTOCOL_NORMAL, 0x50);//Wit初始化
-<<<<<<< HEAD
 	WitSerialWriteRegister(Uart1Send);//Wit串口写函数注册
 	WitRegisterCallBack(SensorDataUpdata);//Wit传感器数据更新回调函数注册
 	WitDelayMsRegister(delay_ms);//Wit延时函数注册
@@ -45,19 +40,12 @@ int main(void)
 	/*变量定义*/
 	float fAcc[3], fGyro[3], fAngle[3];
 	int i;
-=======
-	WitSerialWriteRegister();//Wit串口写函数注册
-
-	/*变量定义*/
-
->>>>>>> 8b2e04583b9112604f3da1f07056752f181bd777
 
 
 	AddTask(Task1_ID, 100, TASK1);	//添加任务1
 	
 	while (1)
 	{
-<<<<<<< HEAD
 	if(s_cDataUpdate)
 		{
 			for(i = 0; i < 3; i++)
@@ -73,8 +61,6 @@ int main(void)
 			}
 		}
 
-=======
->>>>>>> 8b2e04583b9112604f3da1f07056752f181bd777
 
 	}
 }
@@ -83,7 +69,6 @@ void SysTick_Handler(void)
 {
 	TASK_OS();
 }
-<<<<<<< HEAD
 
 /*传感器数据更新回调函数
  * uiReg:寄存器地址
@@ -123,5 +108,3 @@ static void SensorDataUpdata(uint32_t uiReg, uint32_t uiRegNum)
 		uiReg++;
     }
 }
-=======
->>>>>>> 8b2e04583b9112604f3da1f07056752f181bd777
