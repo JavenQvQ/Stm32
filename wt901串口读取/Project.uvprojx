@@ -10,7 +10,7 @@
       <TargetName>Target 1</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5050106::V5.05 update 1 (build 106)::ARMCC</pCCUsed>
+      <pCCUsed>5060528::V5.06 update 5 (build 528)::ARMCC</pCCUsed>
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -742,21 +742,6 @@
               <FileName>OLED_Font.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Hardware\OLED_Font.h</FilePath>
-            </File>
-            <File>
-              <FileName>REG.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\REG.h</FilePath>
-            </File>
-            <File>
-              <FileName>wit_c_sdk.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Hardware\wit_c_sdk.c</FilePath>
-            </File>
-            <File>
-              <FileName>wit_c_sdk.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Hardware\wit_c_sdk.h</FilePath>
             </File>
           </Files>
         </Group>
