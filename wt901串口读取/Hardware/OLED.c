@@ -1,5 +1,6 @@
 #include "stm32f10x.h"
 #include "OLED_Font.h"
+#include <stdio.h>
 
 /*引脚配置*/
 #define OLED_W_SCL(x)		GPIO_WriteBit(GPIOB, GPIO_Pin_6, (BitAction)(x))
@@ -248,10 +249,10 @@ void OLED_ShowHexNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
 
 /**
   * @brief  OLED显示数字（二进制，正数）
-  * @param  Line 起始行位置，范围：1~4
-  * @param  Column 起始列位置，范围：1~16
+  * @param  Line 起始行位置，范围：1 4
+  * @param  Column 起始列位置，范围：1 ~ 16
   * @param  Number 要显示的数字，范围：0~1111 1111 1111 1111
-  * @param  Length 要显示数字的长度，范围：1~16
+  * @param  Length 要显示数字的长度，范围：1 ~ 16
   * @retval 无
   */
 void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Length)
@@ -265,8 +266,8 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
 
 /**
   * @brief  OLED显示浮点数,默认显示5位小数
-  * @param  Line 起始行位置，范围：1~4
-  * @param  Column 起始列位置，范围：1~16
+  * @param  Line 起始行位置，范围：1 ~ 4
+  * @param  Column 起始列位置，范围:1 ~ 16
   * @param  Number 要显示的浮点数
   * @retval 无
   */

@@ -25,6 +25,11 @@ extern "C" {
 #define WIT_PROTOCOL_MODBUS 1
 #define WIT_PROTOCOL_CAN    2
 #define WIT_PROTOCOL_I2C    3
+#define ACC_UPDATE		0x01
+#define GYRO_UPDATE		0x02
+#define ANGLE_UPDATE	0x04
+#define MAG_UPDATE		0x08
+#define READ_UPDATE		0x80
 
 
 /* serial function */
@@ -123,6 +128,9 @@ int32_t WitSetBandwidth(int32_t uiBaudWidth);
 int32_t WitSetOutputRate(int32_t uiRate);
 int32_t WitSetContent(int32_t uiRsw);
 int32_t WitSetCanBaud(int32_t uiBaudIndex);
+
+void Wit901BC_Init(void);
+void Wit901BC_GetData(float *Gz,float *Az);
 
 char CheckRange(short sTemp,short sMin,short sMax);
 
