@@ -15,7 +15,7 @@ void IC_Init()
     TIM_DeInit(TIM3);//复位TIM3
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;//定义结构体
     TIM_TimeBaseStructure.TIM_Period = 65535;//根据个人需求进行配置       
-	TIM_TimeBaseStructure.TIM_Prescaler = 8;  //预分频值
+	TIM_TimeBaseStructure.TIM_Prescaler = 3;  //预分频值,9分频,计数频率为8M
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//输入时钟不分频
 	TIM_TimeBaseStructure.TIM_CounterMode =	TIM_CounterMode_Up; 	//向上计数
 	TIM_TimeBaseInit(TIM3,&TIM_TimeBaseStructure);
@@ -29,7 +29,7 @@ void IC_Init()
 	TIM_ICInit(TIM3, &TIM_ICInitStructure);
 
     TIM_ClearFlag(TIM3, TIM_FLAG_Update);  //清除溢出标志
-    NVIC_InitTypeDef NVIC_InitStructure;  //定义结构体
+    NVIC_InitTypeDef NVIC_InitStructure;   //定义结构体
 	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
@@ -46,9 +46,14 @@ void IC_Init()
 
 }
 
+/** 
+  *@brief:获取频率,单位为Hz
+  *@param:无
+  *@retval:频率
+  */
 uint16_t IC_GetFrequency()
 {
-    return 8000000/tmp16_CH1;
+    return 18000000/tmp16_CH1;//计算频率,8M为时钟频率
 }
 
 void TIM3_IRQHandler(void)                        //定时器中断

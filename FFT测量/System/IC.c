@@ -3,10 +3,10 @@ uint16_t ADC_Value[1024];//存放ADC值
 extern uint32_t InBufArray[1024];//存放ADC值
 extern u8 flag;
 
-//采样频率为TIM生成的PWM信号频率,为4khz
+//采样频率为TIM生成的PWM信号频率,为72khz,最高测量频率为36khz
 //采样点数为1024
-//分辨率为采样频率/采样点数=4khz/1024=3.90625hz
-//ADC转换时间为55.5个周期,即13.5/12M=1.125us
+//分辨率为采样频率/采样点数=72khz/1024=70.3125hz
+//ADC转换时间为55.5个周期,即13.5/12M=55.5us
 
 void TIM1_Init(void)
 {
@@ -16,7 +16,7 @@ void TIM1_Init(void)
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE); 		//时钟使能,不能用TIM1!TIM1是高级定时器,得加TIM_CtrlPWMOutputs(TIM1,ENABLE)函数
 
 		TIM_TimeBaseStructure.TIM_Period = 1000-1; 		//设置在下一个更新事件装入活动的自动重装载寄存器周期的值
-		TIM_TimeBaseStructure.TIM_Prescaler =18-1; 			//设置用来作为TIMx时钟频率除数的预分频值
+		TIM_TimeBaseStructure.TIM_Prescaler =1-1; 			//设置用来作为TIMx时钟频率除数的预分频值
 		TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;		//设置时钟分割:不分割
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; 		//TIM向上计数模式
 		TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);			//根据指定的参数初始化TIMx的时间基数单位
@@ -24,7 +24,7 @@ void TIM1_Init(void)
         TIM_OCStructInit(&TIM_OCInitStructure);
 		TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;		//选择定时器模式:TIM脉冲宽度调制模式1
 		TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;		//比较输出使能
-		TIM_OCInitStructure.TIM_Pulse = 9;
+		TIM_OCInitStructure.TIM_Pulse = 90;        //设置待装入捕获比较寄存器的脉冲值,即PWM波的占空比
 		TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;		//输出极性:TIM输出比较极性低
 		TIM_OC2Init(TIM1, & TIM_OCInitStructure);		//初始化外设TIM2_CH2
 		//TIM_GenerateEvent(TIM2,TIM_EventSource_Update);		//使能TIM2在CCR2上的预装载寄存器
@@ -79,7 +79,7 @@ void ADC1_Init(uint32_t AddrB)
     ADC_InitTypeDef ADC_1;
     ADC_1.ADC_Mode=ADC_Mode_Independent;//独立模式
     ADC_1.ADC_DataAlign=ADC_DataAlign_Right;//右对齐
-    ADC_1.ADC_ExternalTrigConv= ADC_ExternalTrigConv_T1_CC2;//外部触发源选择
+    ADC_1.ADC_ExternalTrigConv= ADC_ExternalTrigConv_T1_CC2;//外部触发源为TIM1的CC2
     ADC_1.ADC_NbrOfChannel=1;//1个转换通道
     ADC_1.ADC_ScanConvMode=DISABLE;//非扫描模式
     ADC_1.ADC_ContinuousConvMode=DISABLE;//连续转换模式
@@ -105,7 +105,7 @@ void  DMA1_Channel1_IRQHandler(void)
 	{
 		for(i=0;i<1024;i++)
 		{
-			InBufArray[i] = ((signed short)(ADC_Value[i])) << 16;	
+			InBufArray[i] = ((signed short)(ADC_Value[i])) << 16;	//将ADC值转换为有符号的32位整数
 		}
 		DMA_ClearITPendingBit(DMA1_IT_TC1);
         flag=1;

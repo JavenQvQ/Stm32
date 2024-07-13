@@ -12,7 +12,11 @@ uint32_t OutBufArray[512];//存放FFT变换后的值
 uint32_t MagBufArray[512];//存放FFT变换后的值
 
 u8 flag;
-//FFT算法,计算幅值
+/*
+*@brief  获得幅值
+*@param  无
+*@retval 无
+*/
 void GetPowerMag()
 {
     signed short lX,lY;
@@ -40,7 +44,7 @@ void GetPowerMag()
         }
 
     }
-        OLED_ShowNum(1,1,MaxMagIndex*3.90625,5);//显示最大幅值的下标
+        OLED_ShowNum(1,1,MaxMagIndex*70.3125,5);//显示最大幅值的下标
 }
 
 
