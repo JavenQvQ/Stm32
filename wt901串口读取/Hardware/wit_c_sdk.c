@@ -19,7 +19,7 @@ int16_t sReg[REGSIZE];
 static volatile char s_cDataUpdate = 0;
 /*加速度定义*/
 float fAcc[3], fGyro[3], fAngle[3];
-int i;
+
 
 #define FuncW 0x06
 #define FuncR 0x03
@@ -551,7 +551,8 @@ static void SensorDataUpdata(uint32_t uiReg, uint32_t uiRegNum)
 */
 void Wit901BC_GetData(float *Gz,float *Az)
 {
-		if(s_cDataUpdate)
+		int i;
+        if(s_cDataUpdate)
 		{
 			for(i = 0; i < 3; i++)
 			{

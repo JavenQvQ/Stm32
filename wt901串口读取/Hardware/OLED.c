@@ -274,16 +274,9 @@ void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
 void OLED_ShowFloat(uint8_t Line, uint8_t Column, float Number)
 {
 
-	char String[40];
+	char String[16];
 	sprintf(String, "%.3f", Number);
-	if (Number >= 0)
-	{
-		OLED_ShowChar(Line, Column, '+');
-	}
-	else
-	{
-		OLED_ShowChar(Line, Column, '-');
-	}
+
 	OLED_ShowString(Line, Column+1, String);
 }
 
