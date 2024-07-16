@@ -13,31 +13,29 @@
  */
 #include "board.h"
 #include "bsp_uart.h"
+#include "OLED.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
 #include "ADC.h"
+
 #include <stdio.h>
+
 
 
 
 int main(void)
 {
-	
 	board_init();
-	
+	OLED_Init();
 	uart1_init(115200U);
-	float32_t a=3;
-	float32_t b=4;
-
-
 	Adc_Init();
-	arm_abs_f32(&a,&b,1);
+
 	while(1)
 	{
-		
-		
-		printf("value = %d\r\n", b);
+		OLED_ShowFloat(1, 1, 3.1415926, 16, 1);
+		printf("value = %d\r\n", Get_Adc(5));
 		delay_ms(1000);
+		OLED_Refresh();
 	}
 	
 
