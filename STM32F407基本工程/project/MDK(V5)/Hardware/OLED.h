@@ -18,11 +18,11 @@
 
 //-----------------OLED端口定义---------------- 
 
-#define OLED_SCL_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_10)//SCL
-#define OLED_SCL_Set() GPIO_SetBits(GPIOB,GPIO_Pin_10)
+#define OLED_SCL_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_14)//SCL
+#define OLED_SCL_Set() GPIO_SetBits(GPIOB,GPIO_Pin_14)
 
-#define OLED_SDA_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_11)//DIN
-#define OLED_SDA_Set() GPIO_SetBits(GPIOB,GPIO_Pin_11)
+#define OLED_SDA_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_15)//DIN
+#define OLED_SDA_Set() GPIO_SetBits(GPIOB,GPIO_Pin_15)
 
 //#define OLED_RES_Clr() GPIO_ResetBits(GPIOD,GPIO_Pin_4)//RES
 //#define OLED_RES_Set() GPIO_SetBits(GPIOD,GPIO_Pin_4)
