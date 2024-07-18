@@ -133,17 +133,17 @@ void TIM3_Config( u32 Fre )
 	TIM_Cmd( TIM3 , ENABLE );	
 }						                  //使能TIM3
 
-//ADC-DMA配置
+
+//ADC-DMA配置,在正常模式下启用,使用后会自动关闭
 //Size为单次传输的数据量
 void ADC_DMA_Trig( u16 Size )                    
 {
 	DMA2_Stream0->CR &= ~((uint32_t)DMA_SxCR_EN);				//将DMA2的stream0线清零
 	DMA2_Stream0->NDTR = Size;                             //设置DMA2的stream0
 	DMA_ClearITPendingBit( DMA2_Stream0 ,DMA_IT_TCIF0|DMA_IT_DMEIF0|DMA_IT_TEIF0|DMA_IT_HTIF0|DMA_IT_TCIF0 );
-	ADC1->SR = 0;//清除ADC1的状态寄存器
+	ADC1->SR = 0;
 	DMA2_Stream0->CR |= (uint32_t)DMA_SxCR_EN;//使能DMA2的stream0线
-}
-
+}	
 
 //ADC—DMA相关配置
 //ADC、DMA和NVIC中断的初始化
@@ -178,7 +178,7 @@ void ADC_Config(void)
 	
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;//12位模式
 	ADC_InitStructure.ADC_ScanConvMode = DISABLE;		//非扫描模式
-	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;	//使能连续转换
+	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;	//关闭连续转换,外部触发模式下，连续转换失能
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;//选择上升沿触发
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;    //选择TIM3的ADC触发
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;	//右对齐									
@@ -199,24 +199,25 @@ void ADC_Config(void)
 	
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;  
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC1_DR_ADDRESS;//DMA读取的目的地		 
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)ADC1_ConvertedValue; //DMA存放的地址
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADC1_ConvertedValue; //DMA存放的地址
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;				//外设到存储器模式
 	DMA_InitStructure.DMA_BufferSize =ADC1_DMA_Size;                   //DMA 传输数量
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;//外设地址不增
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;//要存储的地址增
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;//外设数据长度为半字
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;//存储数据长度为半字
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;						//循环传输													
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;						//正常模式										
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;					//DMA优先级高
 	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         		//不使用FIFO
 	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;	//FIFO阈值
-	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;		//单次传输
+	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;		
     DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;	
 	DMA_Init( DMA2_Stream0 , &DMA_InitStructure );
 	DMA_Cmd( DMA2_Stream0 , DISABLE );//关闭DMA
 	
 	DMA_ClearITPendingBit( DMA2_Stream0 ,DMA_IT_TCIF0 );//清除DMA中断标志
 	DMA_ITConfig( DMA2_Stream0 , DMA_IT_TC , ENABLE );//使能DMA中断
+	DMA_Cmd( DMA2_Stream0 , ENABLE );//开启DMA
  
 	
 	
@@ -227,7 +228,7 @@ void ADC_FFT_Init()
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//设置系统中断优先级分组2
 	ADC_GPIO_Init();
 	TIM3_Config( SAM_FRE );
-	DMA_Cmd( DMA2_Stream0 , ENABLE );//使能DMA
+	ADC_Config();
 
 }
 	
@@ -237,12 +238,15 @@ void ADC_FFT_Init()
  
 //DMA中断配置
 void DMA2_Stream0_IRQHandler( void )
-{	
+{
+
+	if(DMA_GetFlagStatus(DMA2_Stream0,DMA_IT_TCIF0)!=RESET)//传输完成
+
+	{
+		ADC1_DMA_Flag=1;
+		
+	}
 	DMA_ClearITPendingBit( DMA2_Stream0 ,DMA_IT_TCIF0|DMA_IT_DMEIF0|DMA_IT_TEIF0|DMA_IT_HTIF0|DMA_IT_TCIF0 );//清除DMA中断标志
-	DMA2->HIFCR = 0xffff;//清除DMA中断标志
-	DMA2->LIFCR = 0xffff;//清除DMA中断标志
-	ADC1_DMA_Flag = 1;//设置DMA标志
- 
 
 }
 
