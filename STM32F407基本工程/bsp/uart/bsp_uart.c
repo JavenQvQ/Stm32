@@ -14,6 +14,7 @@
  
 #include "bsp_uart.h" 
 #include "stdio.h"
+#include "board.h"
 
 void uart1_init(uint32_t __Baud)
 {
@@ -115,3 +116,109 @@ void USART1_IRQHandler(void)
 }
 
 
+/*******************************************************************/
+/**********************串口二初始化函数******************************/
+/*******************************************************************/
+//TX:PA2
+//RX:PA3
+void uart2_init(uint32_t __Baud)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;	
+
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA,ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);//开启串口2的时钟
+
+	GPIO_PinAFConfig(GPIOA,GPIO_PinSource2,GPIO_AF_USART2);//IO口用作串口引脚要配置复用模式
+	GPIO_PinAFConfig(GPIOA,GPIO_PinSource3,GPIO_AF_USART2);
+
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin           = GPIO_Pin_2;//TX引脚
+	GPIO_InitStructure.GPIO_Mode          = GPIO_Mode_AF;//IO口用作串口引脚要配置复用模式
+	GPIO_InitStructure.GPIO_Speed         = GPIO_Speed_100MHz;
+	GPIO_InitStructure.GPIO_OType         = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd          = GPIO_PuPd_UP;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin           = GPIO_Pin_3;//RX引脚
+	GPIO_InitStructure.GPIO_Mode          = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_Speed         = GPIO_Speed_100MHz;
+	GPIO_InitStructure.GPIO_OType         = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_PuPd          = GPIO_PuPd_UP;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+  
+	USART_InitTypeDef USART_InitStructure;//定义配置串口的结构体变量
+	USART_InitStructure.USART_BaudRate              = __Baud;//设置波特率
+	USART_InitStructure.USART_WordLength			= USART_WordLength_8b;//字节长度为8bit
+	USART_InitStructure.USART_StopBits				= USART_StopBits_1;//1个停止位
+	USART_InitStructure.USART_Parity				= USART_Parity_No ;//没有校验位
+	USART_InitStructure.USART_Mode					= USART_Mode_Rx | USART_Mode_Tx;//将串口配置为收发模式
+	USART_InitStructure.USART_HardwareFlowControl	= USART_HardwareFlowControl_None; //不提供流控
+	USART_InitStructure.USART_Mode					= USART_Mode_Rx | USART_Mode_Tx;//将串口配置为收发模式
+	USART_Init(USART2,&USART_InitStructure);//将相关参数初始化给串口2
+	USART_ClearFlag(USART2,USART_FLAG_RXNE);//初始配置时清除接受置位
+	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);//初始配置接受中断
+	USART_Cmd(USART2,ENABLE);//开启串口2
+	NVIC_InitTypeDef NVIC_InitStructure;//中断控制结构体变量定义
+	NVIC_InitStructure.NVIC_IRQChannel					= USART2_IRQn;//中断通道指定为USART2
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority	= 1;//主优先级为1
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority			= 1;//次优先级为1
+	NVIC_InitStructure.NVIC_IRQChannelCmd					= ENABLE;//确定使能
+	NVIC_Init(&NVIC_InitStructure);//初始化配置此中断通道
+}
+void uart2_send_byte(uint8_t __Data)
+{
+	USART_SendData(USART2,__Data);
+	while( RESET == USART_GetFlagStatus(USART2, USART_FLAG_TXE) )//等待发送完成
+	{	
+	}
+}
+
+void uart2_send_string(uint8_t * __Data)
+{
+	while(*__Data)
+	{
+		USART_SendData(USART2,*__Data);
+		while( RESET == USART_GetFlagStatus(USART2, USART_FLAG_TXE) )//等待发送完成
+		{	
+		}
+		__Data++;
+	}
+}
+
+
+//发送数组
+void uart2_send_array(uint8_t * __Data,uint16_t __Len)
+{
+	uint16_t i;
+	for(i=0;i<__Len;i++)
+	{
+		USART_SendData(USART2,__Data[i]);
+		while( RESET == USART_GetFlagStatus(USART2, USART_FLAG_TXE) )//等待发送完成
+		{	
+		}
+	}
+}
+
+//发送频率和幅度
+//包头是0x01,包尾是0xod和0x0a
+void uart2_send_Fre_Arm(uint32_t _fre,uint16_t _arm)
+{
+	uint8_t i;
+	uint8_t fre[4];
+	uint8_t arm[2];
+	for(i=0;i<4;i++)
+	{
+		fre[3-i]=_fre>>(8*i);//将频率分成4个字节例如0x08F0D180分成0x08,0xF0,0xD1,0x80
+	}
+	for(i=0;i<2;i++)
+	{
+		arm[2-i]=_arm>>(8*i);
+	}
+	uart2_send_byte(0x01);
+	uart2_send_array(fre,4);
+	uart2_send_array(arm,2);
+	uart2_send_byte(0x0d);
+	uart2_send_byte(0x0a);
+}
+void uart2_send_Frestart_Time1_

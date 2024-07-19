@@ -23,17 +23,16 @@ int main(void)
 	board_init();
 	OLED_Init();
 	uart1_init(115200U);
+	uart2_init(115200U);
 	ADC_FFT_Init();
 	arm_cfft_radix4_instance_f32 scfft;//FFT结构体
 	arm_cfft_radix4_init_f32(&scfft,FFT_LENGTH,0,1);//初始化FFT结构体,FFT长度，FFT运算模式，FFT位倒序
 	while(1)
 	{
-		
+		uart2_send_Fre_Arm(150000000,1000);
 		if(ADC1_DMA_Flag==1)
 		{	
-			printf("%d",ADC1_ConvertedValue[0]);
 			ADC1_DMA_Flag=0;
-			
 			for(i=0;i<1024;i++)
 			{
 				fft_inputbuf[i*2]=ADC1_ConvertedValue[i]*3.3/4096;//将ADC采样值转换为电压值
@@ -42,7 +41,8 @@ int main(void)
 			}
 			// arm_cfft_radix4_f32(&scfft,fft_inputbuf);//FFT运算
 			// arm_cmplx_mag_f32(fft_inputbuf,fft_outputbuf,FFT_LENGTH);//计算幅值
-			ADC_DMA_Trig(1024);  
+			ADC_DMA_Trig(1024);
+			
 		}
 
 		
