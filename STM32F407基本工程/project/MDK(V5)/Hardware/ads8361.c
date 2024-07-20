@@ -18,7 +18,7 @@
 //-----------------------------------------------------------------
 #include <stm32f4xx.h>
 #include "ads8361.h"
-#include "delay.h"
+#include "board.h"
 //-----------------------------------------------------------------
 
 //-----------------------------------------------------------------
@@ -41,7 +41,7 @@ void GPIO_ADS8361_Configuration(void)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12|GPIO_Pin_14;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;//输入
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;//上拉
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOD,&GPIO_InitStructure);
 
    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8 | GPIO_Pin_9 |

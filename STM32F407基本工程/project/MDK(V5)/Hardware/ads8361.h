@@ -20,12 +20,12 @@
 //-----------------------------------------------------------------
 // 引脚配置
 //-----------------------------------------------------------------
-#define CLK_L 	 		  GPIO_ResetBits(GPIOD, GPIO_Pin_13)
-#define CLK_H 	 		  GPIO_SetBits(GPIOD, GPIO_Pin_13)
+#define CLK_L 	 		    GPIO_ResetBits(GPIOD, GPIO_Pin_13)
+#define CLK_H 	 		    GPIO_SetBits(GPIOD, GPIO_Pin_13)
 #define CS_L 	 		  	GPIO_ResetBits(GPIOD, GPIO_Pin_11)
 #define CS_H 	 		  	GPIO_SetBits(GPIOD, GPIO_Pin_11)
-#define RD_CONVST_L 	GPIO_ResetBits(GPIOD, GPIO_Pin_15)
-#define RD_CONVST_H 	GPIO_SetBits(GPIOD, GPIO_Pin_15)
+#define RD_CONVST_L 	    GPIO_ResetBits(GPIOD, GPIO_Pin_15)
+#define RD_CONVST_H 	    GPIO_SetBits(GPIOD, GPIO_Pin_15)
 #define A0_L 	 		  	GPIO_ResetBits(GPIOD, GPIO_Pin_8)
 #define A0_H 	 		  	GPIO_SetBits(GPIOD, GPIO_Pin_8)
 #define M0_L 	 		  	GPIO_ResetBits(GPIOD, GPIO_Pin_9)

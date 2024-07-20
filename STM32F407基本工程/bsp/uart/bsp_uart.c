@@ -221,4 +221,3 @@ void uart2_send_Fre_Arm(uint32_t _fre,uint16_t _arm)
 	uart2_send_byte(0x0d);
 	uart2_send_byte(0x0a);
 }
-void uart2_send_Frestart_Time1_
