@@ -40,6 +40,7 @@ extern void GPIO_ADS8361_Configuration(void);
 extern void ADS8361_Init(void);
 extern void ADS8361_Read_Data_Mode4(uint16_t *Data_A, uint16_t *Data_B);
 extern void ADS8361_Read_Data_Mode3(uint16_t *Data_A, uint16_t *Data_B);
+void TIM6_Config( u32 Fre );
 
 #endif
 //-----------------------------------------------------------------

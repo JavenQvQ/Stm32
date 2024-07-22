@@ -1,52 +1,11 @@
  #include "board.h"
  #include "ADC.h"
+ #include "arm_math.h"
 #define ADC1_DR_ADDRESS  ((uint32_t)0x4001204C)          //DMA读取的ADC1地址
 
 u16 ADC1_ConvertedValue[ ADC1_DMA_Size];
 uint8_t ADC1_DMA_Flag;
-/**********************************************************
- * 函 数 名 称：Adc_Init
- * 函 数 功 能：初始化ADC
- * 传 入 参 数：无
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：LP
-**********************************************************/
-void Adc_Init(void)
-{
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	ADC_CommonInitTypeDef ADC_CommonInitStruct;
-	ADC_InitTypeDef ADC_InitStruct;
 
-	RCC_AHB1PeriphClockCmd (RCC_AHB1Periph_GPIOA, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);  
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;//模拟输入
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	ADC_DeInit();//ADC复位
-
-	ADC_CommonInitStruct.ADC_DMAAccessMode=ADC_DMAAccessMode_Disabled;
-	ADC_CommonInitStruct.ADC_Mode=ADC_Mode_Independent;
-	ADC_CommonInitStruct.ADC_Prescaler=ADC_Prescaler_Div4;
-	ADC_CommonInitStruct.ADC_TwoSamplingDelay=ADC_TwoSamplingDelay_5Cycles;
-
-	ADC_CommonInit(&ADC_CommonInitStruct);
-
-	ADC_InitStruct.ADC_ContinuousConvMode = DISABLE;
-	ADC_InitStruct.ADC_DataAlign=ADC_DataAlign_Right;
-	ADC_InitStruct.ADC_ExternalTrigConvEdge=ADC_ExternalTrigConvEdge_None;
-	ADC_InitStruct.ADC_NbrOfConversion=1;
-	ADC_InitStruct.ADC_Resolution=ADC_Resolution_12b;
-	ADC_InitStruct.ADC_ScanConvMode = DISABLE;
-
-	ADC_Init(ADC1, &ADC_InitStruct);
-
-	ADC_Cmd(ADC1, ENABLE);
-}
 /**********************************************************
  * 函 数 名 称：Get_Adc
  * 函 数 功 能：获得某个通道值
@@ -112,18 +71,25 @@ void ADC_GPIO_Init(void)
 void TIM3_Config( u32 Fre )
 {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	u32 MD;
-	u16 div=1;	
-	while( (SystemCoreClock/2/Fre/div)>65535 )
-	{
-		div++;
-	}//计算分频系数
-	MD =  SystemCoreClock/2/Fre/div - 1;	//计算自动重装载值
+
+    int clkInt = 84000000 / Fre;
+    int midInt = __sqrtf(clkInt);
+    int prescaler = 1, period = clkInt;
+
+    for (int i = midInt; i >= 1; i--) {
+        if (clkInt % i == 0) {
+            prescaler = i;
+            period = clkInt / i;
+            break;
+        }
+    }
+
+    if (period % 2 != 0) period += 1;
 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM3 , ENABLE );			   //开启TIM3时钟
 	
 	//TIM3配置
-	TIM_TimeBaseStructure.TIM_Period = MD ;
-	TIM_TimeBaseStructure.TIM_Prescaler = div-1;
+	TIM_TimeBaseStructure.TIM_Period = period-1;//重装载值
+	TIM_TimeBaseStructure.TIM_Prescaler = prescaler-1;//预分频
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit( TIM3 , &TIM_TimeBaseStructure );
@@ -222,7 +188,9 @@ void ADC_Config(void)
 	
 	
 }
- 
+//ADC-DMA初始化,在正常模式下启用,使用后会自动关闭
+//ADC1_DMA_Size为单次传输的数据量,在ADC_Config()中调用,在ADC.h中定义
+//SAM_FRE为采样频率
 void ADC_FFT_Init()
 {
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//设置系统中断优先级分组2

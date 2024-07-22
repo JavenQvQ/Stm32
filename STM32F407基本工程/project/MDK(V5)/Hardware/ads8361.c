@@ -1,17 +1,4 @@
-//-----------------------------------------------------------------
-// 程序描述:
-//     ADS8361驱动程序
-// 作    者: 凌智电子
-// 开始日期: 2022-06-27
-// 完成日期: 2022-06-27
-// 修改日期: 
-// 当前版本: V1.0
-// 历史版本:
-//  - V1.0: (2022-06-27)ADS8361初始化及应用
-// 调试工具: 凌智STM32核心开发板、LZE_ST LINK2、2.8寸液晶、DAS8361模块
-// 说    明: 
-//    
-//-----------------------------------------------------------------
+
 
 //-----------------------------------------------------------------
 // 头文件包含
@@ -20,6 +7,47 @@
 #include "ads8361.h"
 #include "board.h"
 //-----------------------------------------------------------------
+uint16_t ADS8361_DB_data1[1024];//DB数据
+uint8_t ADS8361_Recive_Flag = 0;//接收标志
+
+/********************************************************************************************
+*函数名： TIM6_Init
+*功 能： 初始化定时器6
+*参 数： 无
+*返 回： 无
+备 注： 1.步骤：1.使能时钟 2.调用定时器初始化函数 3.允许更新中断（映射） 4.NVIC相关设置
+2.RCC_APB1Periph时钟
+3.基本定时器 (TIM6和TIM7)的特性:16 位自动重装载值递增计数器
+4.举例：IM6_Int_Init(8000-1,5000-1); 定时器时钟422M，分频系数8400，所以84M/8400=10Khz的计数频率，计数5000次为500ms
+********************************************************************************************/
+void TIM6_Config( u32 Fre )
+{
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+	u32 MD;
+	u16 div=1;
+	while( (SystemCoreClock/2/Fre/div)>65535 )//计算分频系数
+	{
+		div++;
+	}//计算分频系数
+	MD =  SystemCoreClock/2/Fre/div - 1;	//计算自动重装载值
+	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM6 , ENABLE );			   //开启TIM3时钟
+	TIM_TimeBaseStructure.TIM_Period = MD ;//自动重装载值
+	TIM_TimeBaseStructure.TIM_Prescaler = div-1;//分频系数
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;//向上计数
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;//时钟分频,不分频
+	TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);//初始化TIM3
+	
+	TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);//允许更新中断
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;//TIM3中断
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;//抢占优先级
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;//响应优先级
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;//使能外部中断通道
+	NVIC_Init(&NVIC_InitStructure);//初始化NVIC
+	TIM_ClearITPendingBit(TIM6, TIM_IT_Update);//清除TIM3更新中断标志
+	TIM_Cmd(TIM6, ENABLE);//使能TIM3
+}
+
 
 //-----------------------------------------------------------------
 // void GPIO_ADS8361_Configuration(void)
@@ -41,13 +69,13 @@ void GPIO_ADS8361_Configuration(void)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12|GPIO_Pin_14;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;//输入
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;//上拉
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_Init(GPIOD,&GPIO_InitStructure);
 
    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8 | GPIO_Pin_9 |
 																	GPIO_Pin_10| GPIO_Pin_11|
 																	GPIO_Pin_13| GPIO_Pin_15;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;//输出
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;//推挽输出
   GPIO_Init(GPIOD, &GPIO_InitStructure);
@@ -71,6 +99,7 @@ void ADS8361_Init(void)
 	M1_H;
 	A0_L;
 	CS_H;	
+	TIM6_Config(100000);//以100Khz的频率读取数据,在模式3下每通道最大吞吐量为250ksps,在模式4下每通道最大吞吐量为125ksps
 }
 
 //-----------------------------------------------------------------
@@ -79,9 +108,10 @@ void ADS8361_Init(void)
 // 
 // 函数功能: 读取通道数据（模式：M0=1, M1=1, A=0）
 // 入口参数: Data_A：通道A读取的数据
-//					 Data_B：通道B读取的数据
+//		   	Data_B：通道B读取的数据
 // 返 回 值: 无
-// 注意事项: 无
+// 注意事项: 使用四通道时因为是2个ADC多路复用4通道，所以每通道最大吞吐量250ksps，并且需要工作在模式3下。
+//          四通道工作在模式4下时，每通道最大吞吐量125ksps.
 //
 //-----------------------------------------------------------------
 void ADS8361_Read_Data_Mode4(uint16_t *Data_A, uint16_t *Data_B)
@@ -98,7 +128,7 @@ void ADS8361_Read_Data_Mode4(uint16_t *Data_A, uint16_t *Data_B)
 		for(i=0; i<20; i++)
 		{
 			CLK_H;
-			if(i == 0)
+			if(i == 0)//第一位
 			{
 				RD_CONVST_H;
 				M0_H;
@@ -221,3 +251,31 @@ void ADS8361_Read_Data_Mode3(uint16_t *Data_A, uint16_t *Data_B)
 	}
 	CS_H;	
 }
+
+
+
+void TIM6_DAC_IRQHandler(void)
+{
+	static uint16_t i;//定义一个静态变量,不会被初始化
+	uint16_t DA_data[2];//DA数据
+	uint16_t DB_data[2];//DB数据
+	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
+		ADS8361_Read_Data_Mode3(DA_data, DB_data);
+		ADS8361_DB_data1[i] = DB_data[1];
+		i++;
+		if(i == 1024)
+		{
+			i = 0;
+			TIM_Cmd(TIM6, DISABLE);//关闭TIM3
+			ADS8361_Recive_Flag = 1;
+		}
+
+		
+	}
+}
+
+
+
+	
