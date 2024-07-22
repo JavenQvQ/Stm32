@@ -6,6 +6,7 @@
 #include "arm_const_structs.h"
 #include "ADC.h"//使用PB01和定时器3以及DMA2_Stream0
 #include "ads8361.h"//使用TIM6和PD8-PD15
+#include "DAC.h"//使用PA04
 #include <stdio.h>
 
 
@@ -91,6 +92,7 @@ int main(void)
 			
 		// }
 		ADC_DATAHandle();//ADC数据处理函数
+
 
 
 

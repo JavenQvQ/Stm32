@@ -88,8 +88,8 @@ void TIM3_Config( u32 Fre )
 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM3 , ENABLE );			   //开启TIM3时钟
 	
 	//TIM3配置
-	TIM_TimeBaseStructure.TIM_Period = period-1;//重装载值
-	TIM_TimeBaseStructure.TIM_Prescaler = prescaler-1;//预分频
+	TIM_TimeBaseStructure.TIM_Period = period-1;//自动重装载值
+	TIM_TimeBaseStructure.TIM_Prescaler = prescaler-1;//定时器分频
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit( TIM3 , &TIM_TimeBaseStructure );
