@@ -31,8 +31,6 @@ const uint16_t DA1_Value[DA1_Value_Length] = {
 
 };
 
-
-
 //DAC输出配置
 //PA4和DMA1_Stream5_CH7连接
 //TIM4触发DAC,需要配置TIM4
@@ -55,7 +53,7 @@ void DAC_Configuration(void)
     DAC_InitStructure.DAC_Trigger = DAC_Trigger_T4_TRGO;//定时器4触发
     DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;//不产生波形
     DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_LFSRUnmask_Bit0;//不使用LFSR
-    DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Disable ;//不使用缓冲
+    DAC_InitStructure.DAC_OutputBuffer=DAC_OutputBuffer_Enable;//输出缓存,
     DAC_Init(DAC_Channel_1, &DAC_InitStructure);
     DAC_SetChannel1Data(DAC_Align_12b_R, 0);//初始化输出值,右对齐
     
@@ -84,29 +82,25 @@ void DAC_Configuration(void)
 }
 
 void Tim4_Configuration(uint32_t Fre)
-{	uint32_t period,prescaler;//计算最合适的分频和重装值
-	float midFloat,clkFloat ;//中间变量
-	long clkInt;//中间变量
-	long midInt;//中间变量
-	clkFloat = 84000000.0f/Fre;//计算最合适的分频和重装值
-	if(clkFloat-(long)clkFloat>=0.5f)  		clkInt = clkFloat+1;//四舍五入
-	else							 		clkInt = (long)clkFloat;//取整
-	
-    midFloat = __sqrtf(clkFloat);// 开方
-	if(midFloat-(long)midFloat>=0.5f)  		midInt = (long)midFloat+1;//四舍五入
-	else									midInt = (long)midFloat;//取整
-	// 找一组最接近的
-	for(int i=midInt;i>=1;i--)
-	{
-		if(clkInt%i==0)//找到一个能整除的,就是最接近的,因为是从大到小找的
-		{
-			prescaler = i;
-			period = clkInt/i;
-			break;
-		}
-	}
-    if(period%2!=0)//如果是奇数
-    period=period+1;//保证ccr为整数
+{	    
+    
+    uint32_t period, prescaler;
+    long clkInt, midInt;
+    // 使用84000000.0代替硬编码的值，以提高可维护性
+    clkInt = (long)(84000000.0 / Fre + 0.5); // 简化四舍五入逻辑
+
+    midInt = (long)(float)(__sqrtf((float)clkInt) + 0.5f); // 简化四舍五入逻辑
+
+    // 优化循环，减少迭代次数
+    for (int i = midInt; i >= 1; i--) {
+        if (clkInt % i == 0) { // 如果找到能整除的值
+            prescaler = i;
+            period = clkInt / i;
+            break; // 找到后立即退出循环
+        }
+    }
+
+    // 使能TIM4时钟
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 

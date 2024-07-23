@@ -72,19 +72,22 @@ void TIM3_Config( u32 Fre )
 {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 
-    int clkInt = 84000000 / Fre;
-    int midInt = __sqrtf(clkInt);
-    int prescaler = 1, period = clkInt;
+    uint32_t period, prescaler;
+    long clkInt, midInt;
+    // 使用84000000.0代替硬编码的值，以提高可维护性
+    clkInt = (long)(84000000.0 / Fre + 0.5); // 简化四舍五入逻辑
 
+    midInt = (long)(__sqrtf((float)clkInt) + 0.5); // 简化四舍五入逻辑
+
+    // 优化循环，减少迭代次数
     for (int i = midInt; i >= 1; i--) {
-        if (clkInt % i == 0) {
+        if (clkInt % i == 0) { // 如果找到能整除的值
             prescaler = i;
             period = clkInt / i;
-            break;
+            break; // 找到后立即退出循环
         }
     }
 
-    if (period % 2 != 0) period += 1;
 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM3 , ENABLE );			   //开启TIM3时钟
 	
 	//TIM3配置

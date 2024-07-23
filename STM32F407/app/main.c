@@ -6,7 +6,7 @@
 #include "arm_const_structs.h"
 #include "ADC.h"//使用PB01和定时器3以及DMA2_Stream0
 #include "ads8361.h"//使用TIM6和PD8-PD15
-#include "DAC.h"//使用PA04
+#include "DAC.h"//使用PA04和TIM4以及DMA1_Stream5
 #include <stdio.h>
 
 
@@ -72,25 +72,12 @@ int main(void)
 	uart2_init(115200U);
 	ADC_FFT_Init();//ADC初始化
 
-	Tim4_Configuration(10000);//DAC输出频率10khz
-	DAC_Configuration();//DAC初始化
 	
+	DAC_Configuration();//DAC初始化
+	Tim4_Configuration(1000);//DAC输出频率10khz
 	while(1)
 	{
-		// if(ADC1_DMA_Flag==1)
-		// {	
-		// 	ADC1_DMA_Flag=0;
-		// 	for(i=0;i<1024;i++)
-		// 	{
-		// 		fft_inputbuf[i*2]=ADC1_ConvertedValue[i]*3.3/4096;//将ADC采样值转换为电压值
-				
-		// 		fft_inputbuf[i*2+1]=0;//虚部为0
-		// 	}
-		// 	// arm_cfft_radix4_f32(&scfft,fft_inputbuf);//FFT运算
-		// 	// arm_cmplx_mag_f32(fft_inputbuf,fft_outputbuf,FFT_LENGTH);//计算幅值
-		// 	ADC_DMA_Trig(1024);
-			
-		// }
+
 		ADC_DATAHandle();//ADC数据处理函数
 
 
