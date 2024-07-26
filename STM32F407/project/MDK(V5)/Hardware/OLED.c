@@ -315,7 +315,7 @@ void OLED_ShowString(u8 x,u8 y,u8 *chr,u8 size1,u8 mode)
 //mode:0,反色显示;1,正常显示
 void OLED_ShowFloat(u8 x,u8 y,float num,u8 size1,u8 mode)
 {
-	u8 temp[10];
+	u8 temp[20];
 	sprintf((char*)temp,"%.3f",num);
 	OLED_ShowString(x,y,temp,size1,mode);
 }

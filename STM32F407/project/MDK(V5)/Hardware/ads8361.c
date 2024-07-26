@@ -7,7 +7,7 @@
 #include "ads8361.h"
 #include "board.h"
 //-----------------------------------------------------------------
-uint16_t ADS8361_DB_data1[1024];//DB数据
+float ADS8361_DB_data1[1024];//DB数据
 uint8_t ADS8361_Recive_Flag = 0;//接收标志
 
 /********************************************************************************************
@@ -256,24 +256,46 @@ void ADS8361_Read_Data_Mode3(uint16_t *Data_A, uint16_t *Data_B)
 
 void TIM6_DAC_IRQHandler(void)
 {
-	static uint16_t i;//定义一个静态变量,不会被初始化
+	static uint16_t num;//定义一个静态变量,不会被初始化
+    uint8_t i = 0;
 	uint16_t DA_data[2];//DA数据
 	uint16_t DB_data[2];//DB数据
-	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)
+	float   Analog_A[2];
+	float   Analog_B[2];
+
+	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)//检查TIM3更新中断发生与否
 	{
 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
 		ADS8361_Read_Data_Mode3(DA_data, DB_data);
-		ADS8361_DB_data1[i] = DB_data[1];
-		i++;
-		if(i == 1024)
+        for(i=0; i<2; i++)
+	   {
+			if(DA_data[i] & 0x8000)
+			{
+				Analog_A[i] = ((DA_data[i] ^ 0x7FFF + 1)*5000.0/65535) - 2500;
+			}
+			else
+			{
+				Analog_A[i] = (DA_data[i]*5000.0/65535);
+			}
+			if(DB_data[i] & 0x8000)
+			{
+				Analog_B[i] = ((DB_data[i] ^ 0x7FFF + 1)*5000.0/65535) - 2500;
+			}
+			else
+			{
+				Analog_B[i] = (DB_data[i]*5000.0/65535);
+			}	
+			
+		}
+		ADS8361_DB_data1[num] = Analog_A[0];
+		num++;
+		if(num == 1024)
 		{
-			i = 0;
+			num = 0;
 			TIM_Cmd(TIM6, DISABLE);//关闭TIM3
 			ADS8361_Recive_Flag = 1;
-		}
-
-		
-	}
+		}		
+	}	
 }
 
 

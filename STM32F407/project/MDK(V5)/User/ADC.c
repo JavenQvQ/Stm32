@@ -77,7 +77,7 @@ void TIM3_Config( u32 Fre )
     // 使用84000000.0代替硬编码的值，以提高可维护性
     clkInt = (long)(84000000.0 / Fre + 0.5); // 简化四舍五入逻辑
 
-    midInt = (long)(__sqrtf((float)clkInt) + 0.5); // 简化四舍五入逻辑
+	midInt = (long)(float)(__sqrtf((float)clkInt) + 0.5f); // 简化四舍五入逻辑
 
     // 优化循环，减少迭代次数
     for (int i = midInt; i >= 1; i--) {
@@ -157,8 +157,8 @@ void ADC_Config(void)
 	 
  
  
-	ADC_RegularChannelConfig( ADC1 , ADC_Channel_9 , 1, ADC_SampleTime_480Cycles);//配置ADC1的通道9采样时间,为480+12个时钟周期，即492个时钟周期时间为492
-	//计算过程:ADC采样时间=492/21M=23.4us,ADC采样频率为1/23.4us=42.7KHz  ,TIM3的频率要小于ADC的采样频率
+	ADC_RegularChannelConfig( ADC1 , ADC_Channel_9 , 1, ADC_SampleTime_3Cycles);//配置ADC1的通道9采样时间,为3+12个时钟周期，即为15个时钟周期
+	//计算过程:ADC采样时间=15/21M=,ADC采样频率为21M/15=1.4M
  
 	ADC_DMARequestAfterLastTransferCmd( ADC1 , ENABLE );//使能ADC的DMA请求
 	

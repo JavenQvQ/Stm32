@@ -271,14 +271,18 @@
       },
       {
         "name": "::CMSIS",
-        "files": [],
+        "files": [
+          {
+            "path": ".cmsis/arm_cortexM4lf_math.lib"
+          }
+        ],
         "folders": []
       }
     ]
   },
   "outDir": "build",
   "deviceName": null,
-  "packDir": null,
+  "packDir": ".pack/Keil/STM32F4xx_DFP.2.17.1",
   "miscInfo": {
     "uid": "7203657cf30f395993460f9679c167b6"
   },
