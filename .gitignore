@@ -623,3 +623,6 @@ DDS/USER/DebugConfig/VirtualCOMPort_STM32F103C8_1.0.0.dbgconf
 FFT/EventRecorderStub.scvd
 FFT/Project.uvguix.97028
 FFT/DebugConfig/Target_1_STM32F103C8_1.0.0.dbgconf
+wt901/Project.uvguix.97028
+wt901/Project.uvguix.Admin
+wt901/DebugConfig/Target_1_STM32F103C8_1.0.0.dbgconf
