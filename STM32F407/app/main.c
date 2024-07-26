@@ -9,7 +9,7 @@
 #include "DAC.h"//使用PA04和TIM4以及DMA1_Stream5
 #include <stdio.h>
 
-#define Filter_Number 3//滤波器长度
+#define Filter_Number 4//滤波器长度
 float filter5(float *filter_buf); //中位值平均滤波法
 
 extern uint8_t ADC1_DMA_Flag;//ADC采集完成数据标志
@@ -65,7 +65,7 @@ void ADC_DATAHandle(void)
 
 		//取实部,并把直流分量去掉
 		ADC1_FFtOutput[0]=0;//直流分量去掉
-		for(int i=0;i<FFT_Size/2;i++)
+		for(i=0;i<FFT_Size/2;i++)
 		{
 			ADC1_FFtOutputReal[i]=ADC1_FFtOutput[i*2];//取实部
 		}
@@ -80,7 +80,12 @@ void ADC_DATAHandle(void)
 			Filter_Number_Count=0;
 			//滤波
 			//OLED_ShowFloat(2,3,ADC1_FFtOutputMax[0],12,1);//显示最大值
-			OLED_ShowFloat(2,4,ADC1_FFtOutputMaxIndex[0]*SAM_FRE/FFT_Size,12,1);//显示频率
+			float floatIndex[Filter_Number];
+			for (int i = 0; i < Filter_Number; i++) {
+				floatIndex[i] = (float)ADC1_FFtOutputMaxIndex[i];
+			}
+			OLED_ShowFloat(2,0,filter5(floatIndex)*SAM_FRE/FFT_Size,12,1);//显示频率
+			OLED_ShowFloat(2,16,ADC1_FFtOutputMax[0],12,1);//显示幅值
 			OLED_Refresh();
 		}
 
