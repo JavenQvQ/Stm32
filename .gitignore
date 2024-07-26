@@ -617,3 +617,6 @@ DDS驱动板/USER/.vscode/keil-assistant.log
 DDS驱动板/USER/.vscode/uv4.log.lock
 STM32Project/f103project.uvguix.97028
 103PWMandmearsure/Project.uvguix.97028
+DDS/USER/DebugConfig/VirtualCOMPort_STM32F103RC_1.0.0.dbgconf
+DDS/USER/DebugConfig/VirtualCOMPort_STM32F103RB_1.0.0.dbgconf
+DDS/USER/DebugConfig/VirtualCOMPort_STM32F103C8_1.0.0.dbgconf
