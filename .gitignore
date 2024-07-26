@@ -620,3 +620,6 @@ STM32Project/f103project.uvguix.97028
 DDS/USER/DebugConfig/VirtualCOMPort_STM32F103RC_1.0.0.dbgconf
 DDS/USER/DebugConfig/VirtualCOMPort_STM32F103RB_1.0.0.dbgconf
 DDS/USER/DebugConfig/VirtualCOMPort_STM32F103C8_1.0.0.dbgconf
+FFT/EventRecorderStub.scvd
+FFT/Project.uvguix.97028
+FFT/DebugConfig/Target_1_STM32F103C8_1.0.0.dbgconf
