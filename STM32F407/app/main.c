@@ -5,94 +5,121 @@
 #include "OLED.h"//使用PB14SCL PB15SDA
 #include "FFT.h"//使用arm_math.h
 #include "ADC.h"//使用PB01和定时器3以及DMA2_Stream0
-#include "ads8361.h"//使用TIM6和PD8-PD15
 #include "DAC.h"//使用PA04和TIM4以及DMA1_Stream5
+#include "ad9220_dcmi.h"
 #include <stdio.h>
-
+#include "board.h"
 #define Filter_Number 4//滤波器长度
 float filter5(float *filter_buf); //中位值平均滤波法
 
 extern uint8_t ADC1_DMA_Flag;//ADC采集完成数据标志
 extern u16 ADC1_ConvertedValue[ ADC1_DMA_Size ];//ADC数据
 
-extern float ADS8361_DB_data1[1024];//DB数据
-extern uint8_t  ADS8361_Recive_Flag;//ADS8361采集完成1024个数据标志
 
 
+extern uint32_t adc_convert_value[ADC_DMA_DATA_LENGTH]; //存储从 DCMI 接收来的数据
 
-//ADS8361数据处理函数,通过定时器中断采集数据,采集1024个数据后进入数据处理函数
-//放在主循环中调用
-void ADS8361_DATAHandle(void)
-{
-	if(ADS8361_Recive_Flag==1)
-		{
-			ADS8361_Recive_Flag=0;
-			for(int i=0;i<1024;i++)
-			{
-				printf("%f\n",ADS8361_DB_data1[i]);
-				
-			}
-			TIM6_Config(20000);//定时器100khz的频率采集数据
+
+// void AD9220_DATAHandle(void)
+// {
+// 	static int Filter_Number_Count=0;
+// 	static float AD9220_FFtInput[FFT_Size];//FFT输入数据
+// 	//static uint16_t AD9220_FFt[FFT_Size];//FFT输入数据
+// 	static float AD9220_FFtOutput[FFT_Size];//FFT输出数据
+// 	//static float AD9220_FFtOutputReal[FFT_Size/2];//FFT输出实部
+// 	static float AD9220_FFtOutputAmplitude[FFT_Size/2];//FFT输出幅值
+// 	static float AD9220_FFtOutputMax[Filter_Number];//FFT输出最大值
+// 	static uint32_t AD9220_FFtOutputMaxIndex[Filter_Number];//FFT输出最大值索引
+// 	if(AD9220_DMA_Flag==1)
+// 	{
+// 		TIM_Cmd(TIM6, DISABLE);//关闭定时器
+// 		AD9220_DMA_Flag=0;
+//     	for(uint16_t t=0;t<FFT_Size;t++)
+//     	{
+//     		AD9220_FFtInput[t] = AD9220_Data[t]* 5.0f/ 4096.0f; // 归一化
+
+// 	  	}		
+// 		FFT_RealDatedeal(AD9220_FFtInput,AD9220_FFtOutput);//FFT计算
+// 		//取实部,并把直流分量去掉
+// 		AD9220_FFtOutput[0]=0;//直流分量去掉
+// 		arm_cmplx_mag_f32(AD9220_FFtOutput,AD9220_FFtOutputAmplitude,FFT_Size/2);//求幅值
+// 		//滤波
+// 		FFT_GetMax(AD9220_FFtOutputAmplitude,&AD9220_FFtOutputMax[Filter_Number_Count],&AD9220_FFtOutputMaxIndex[Filter_Number_Count]);//获取最大值和最大值索引
+// 		Filter_Number_Count++;
+// 		if(Filter_Number_Count==Filter_Number)
+// 		{
+// 			Filter_Number_Count=0;
+// 			//滤波
+// 			//OLED_ShowFloat(2,3,AD9220_FFtOutputMax[0],12,1);//显示最大值
+// 			float floatIndex[Filter_Number];
+// 			for (int i = 0; i < Filter_Number; i++) {
+// 				floatIndex[i] = (float)AD9220_FFtOutputMaxIndex[i];
+// 			}
+// 			OLED_ShowFloat(2,0,filter5(floatIndex)*fre/FFT_Size,12,1);//显示频率
+// 			OLED_ShowFloat(2,16,AD9220_FFtOutputMax[0],12,1);//显示幅值
+// 			OLED_Refresh();
+// 		}
 			
-			printf("done\n");
-	    }
-}
+// 	}
+// 		TIM_Cmd(TIM6, ENABLE);//打开定时器
+// }
+
 
 
 //ADC数据处理函数,通过DMA采集数据,采集数据后进入数据处理函数
 //放在主循环中调用
-void ADC_DATAHandle(void)
-{
-	uint16_t i;
-	static int Filter_Number_Count=0;
-	static float ADC1_FFtInput[FFT_Size];//FFT输入数据
-	static float ADC1_FFtOutput[FFT_Size];//FFT输出数据
-	static float ADC1_FFtOutputReal[FFT_Size/2];//FFT输出实部
-	static float ADC1_FFtOutputAmplitude[FFT_Size/2];//FFT输出幅值
-	static float ADC1_FFtOutputMax[Filter_Number];//FFT输出最大值
-	static uint32_t ADC1_FFtOutputMaxIndex[Filter_Number];//FFT输出最大值索引
-	if(ADC1_DMA_Flag==1)
-	{	
-		ADC1_DMA_Flag=0;
-		//数据处理
-		for(i=0;i<FFT_Size;i++)
-		{
-			ADC1_FFtInput[i]=ADC1_ConvertedValue[i]*3.3/4096;//归一化
+// void ADC_DATAHandle(void)
+// {
+// 	uint16_t i;
+// 	static int Filter_Number_Count=0;
+// 	static float ADC1_FFtInput[FFT_Size];//FFT输入数据
+// 	static float ADC1_FFtOutput[FFT_Size];//FFT输出数据
+// 	static float ADC1_FFtOutputReal[FFT_Size/2];//FFT输出实部
+// 	static float ADC1_FFtOutputAmplitude[FFT_Size/2];//FFT输出幅值
+// 	static float ADC1_FFtOutputMax[Filter_Number];//FFT输出最大值
+// 	static uint32_t ADC1_FFtOutputMaxIndex[Filter_Number];//FFT输出最大值索引
+// 	if(ADC1_DMA_Flag==1)
+// 	{	
+// 		ADC1_DMA_Flag=0;
+// 		//数据处理
+// 		for(i=0;i<FFT_Size;i++)
+// 		{
+// 			ADC1_FFtInput[i]=ADC1_ConvertedValue[i]*3.3/4096;//归一化
 			
-		}
-		FFT_RealDatedeal(ADC1_FFtInput,ADC1_FFtOutput);//FFT计算
+// 		}
+// 		FFT_RealDatedeal(ADC1_FFtInput,ADC1_FFtOutput);//FFT计算
 		
 
-		//取实部,并把直流分量去掉
-		ADC1_FFtOutput[0]=0;//直流分量去掉
-		for(i=0;i<FFT_Size/2;i++)
-		{
-			ADC1_FFtOutputReal[i]=ADC1_FFtOutput[i*2];//取实部
-		}
-		arm_cmplx_mag_f32(ADC1_FFtOutput,ADC1_FFtOutputAmplitude,FFT_Size/2);//求幅值
-		//滤波
-		FFT_GetMax(ADC1_FFtOutputAmplitude,&ADC1_FFtOutputMax[Filter_Number_Count],&ADC1_FFtOutputMaxIndex[Filter_Number_Count]);//获取最大值和最大值索引
+// 		//取实部,并把直流分量去掉
+// 		ADC1_FFtOutput[0]=0;//直流分量去掉
+// 		for(i=0;i<FFT_Size/2;i++)
+// 		{
+// 			ADC1_FFtOutputReal[i]=ADC1_FFtOutput[i*2];//取实部
+// 		}
+// 		arm_cmplx_mag_f32(ADC1_FFtOutput,ADC1_FFtOutputAmplitude,FFT_Size/2);//求幅值
+// 		//滤波
+// 		FFT_GetMax(ADC1_FFtOutputAmplitude,&ADC1_FFtOutputMax[Filter_Number_Count],&ADC1_FFtOutputMaxIndex[Filter_Number_Count]);//获取最大值和最大值索引
 
 
-		Filter_Number_Count++;
-		if(Filter_Number_Count==Filter_Number)
-		{
-			Filter_Number_Count=0;
-			//滤波
-			//OLED_ShowFloat(2,3,ADC1_FFtOutputMax[0],12,1);//显示最大值
-			float floatIndex[Filter_Number];
-			for (int i = 0; i < Filter_Number; i++) {
-				floatIndex[i] = (float)ADC1_FFtOutputMaxIndex[i];
-			}
-			OLED_ShowFloat(2,0,filter5(floatIndex)*SAM_FRE/FFT_Size,12,1);//显示频率
-			OLED_ShowFloat(2,16,ADC1_FFtOutputMax[0],12,1);//显示幅值
-			OLED_Refresh();
-		}
+// 		Filter_Number_Count++;
+// 		if(Filter_Number_Count==Filter_Number)
+// 		{
+// 			Filter_Number_Count=0;
+// 			//滤波
+// 			//OLED_ShowFloat(2,3,ADC1_FFtOutputMax[0],12,1);//显示最大值
+// 			float floatIndex[Filter_Number];
+// 			for (int i = 0; i < Filter_Number; i++) {
+// 				floatIndex[i] = (float)ADC1_FFtOutputMaxIndex[i];
+// 			}
+// 			OLED_ShowFloat(2,0,filter5(floatIndex)*SAM_FRE/FFT_Size,12,1);//显示频率
+// 			OLED_ShowFloat(2,16,ADC1_FFtOutputMax[0],12,1);//显示幅值
+// 			OLED_Refresh();
+// 		}
 
 			
-		ADC_DMA_Trig(ADC1_DMA_Size);//重新开始采集数据
-	}
-}
+// 		ADC_DMA_Trig(ADC1_DMA_Size);//重新开始采集数据
+// 	}
+// }
  
 //主函数
 int main(void)
@@ -101,29 +128,42 @@ int main(void)
 	OLED_Init();
 	
 	uart1_init(115200U);
-	uart2_init(115200U);
-	ADC_FFT_Init();//ADC初始化
+	//uart2_init(115200U);
+	//ADC_FFT_Init();//ADC初始化
 	//ADS8361_Init();//ADS8361初始化
-
+    AD9220_DCMIDMA_Config();//AD9220初始化
 	
-	DAC_Configuration();//DAC初始化
-	Tim4_Configuration(24000);//DAC产生频率24000khz/24=1000khz
+	//DAC_Configuration();//DAC初始化
+	//Tim4_Configuration(9600000);//DAC产生频率24000khz/24=1000khz
 	while(1)
 	{
 
-		ADC_DATAHandle();//ADC数据处理函数
-		//ADS8361_DATAHandle();//ADS8361数据处理函数
-		// OLED_ShowFloat(1,1,1.234,16,1);//显示最大值
-		// OLED_Refresh();//刷新显示
-
+		//ADC_DATAHandle();//ADC数据处理函数
+		//OLED_ShowNum(0,0,AD9220ReadData(100000),5,12,1);//显示AD9220数据
+		//OLED_Refresh();
+		//AD9220_DATAHandle();//AD9220数据处理函数
 		
-
 
 
 
 	}
 }
+void DMA2_Stream1_IRQHandler(void)
+{
+	uint16_t counter;
 
+	dcmi_capture_control(DISABLE);//关闭DCMI采集
+	HSYNC_VSYNC_init();
+	for(counter = 0; counter < ADC_DMA_DATA_LENGTH; counter++)
+	{
+//		printf("%u\r\n",adc_convert_value[counter]);//串口打印数据
+		printf("%u\r\n",(uint16_t)adc_convert_value[counter]);
+		printf("%u\r\n",(uint16_t)(adc_convert_value[counter] >> 16));//串口打印数据
+	}
+	dcmi_capture_control(ENABLE);//开启DCMI采集
+	DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1); //清除中断标志位 TCIF:DMA 传输完成
+	//GPIO_ResetBits(GPIOE,GPIO_Pin_14 | GPIO_Pin_15);//将 HSYNC 和 VSYNC 拉低，开始采集
+}
 
 // // int a=0;
 // // int b=1;

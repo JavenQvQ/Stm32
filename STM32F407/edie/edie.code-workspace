@@ -18,7 +18,9 @@
             "*.c++": "cpp",
             "*.cpp": "cpp",
             "*.cxx": "cpp",
-            "*.cc": "cpp"
+            "*.cc": "cpp",
+            "AD9220.C": "cpp",
+            "AD9220.H": "cpp"
         },
         "[yaml]": {
             "editor.insertSpaces": true,

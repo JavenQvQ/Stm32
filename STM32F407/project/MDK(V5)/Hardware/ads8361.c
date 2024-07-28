@@ -20,33 +20,33 @@ uint8_t ADS8361_Recive_Flag = 0;//接收标志
 3.基本定时器 (TIM6和TIM7)的特性:16 位自动重装载值递增计数器
 4.举例：IM6_Int_Init(8000-1,5000-1); 定时器时钟422M，分频系数8400，所以84M/8400=10Khz的计数频率，计数5000次为500ms
 ********************************************************************************************/
-void TIM6_Config( u32 Fre )
-{
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	u32 MD;
-	u16 div=1;
-	while( (SystemCoreClock/2/Fre/div)>65535 )//计算分频系数
-	{
-		div++;
-	}//计算分频系数
-	MD =  SystemCoreClock/2/Fre/div - 1;	//计算自动重装载值
-	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM6 , ENABLE );			   //开启TIM3时钟
-	TIM_TimeBaseStructure.TIM_Period = MD ;//自动重装载值
-	TIM_TimeBaseStructure.TIM_Prescaler = div-1;//分频系数
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;//向上计数
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;//时钟分频,不分频
-	TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);//初始化TIM3
+// void TIM6_Config( u32 Fre )
+// {
+// 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+// 	u32 MD;
+// 	u16 div=1;
+// 	while( (SystemCoreClock/2/Fre/div)>65535 )//计算分频系数
+// 	{
+// 		div++;
+// 	}//计算分频系数
+// 	MD =  SystemCoreClock/2/Fre/div - 1;	//计算自动重装载值
+// 	RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM6 , ENABLE );			   //开启TIM3时钟
+// 	TIM_TimeBaseStructure.TIM_Period = MD ;//自动重装载值
+// 	TIM_TimeBaseStructure.TIM_Prescaler = div-1;//分频系数
+// 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;//向上计数
+// 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;//时钟分频,不分频
+// 	TIM_TimeBaseInit(TIM6, &TIM_TimeBaseStructure);//初始化TIM3
 	
-	TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);//允许更新中断
-	NVIC_InitTypeDef NVIC_InitStructure;
-	NVIC_InitStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;//TIM3中断
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;//抢占优先级
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;//响应优先级
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;//使能外部中断通道
-	NVIC_Init(&NVIC_InitStructure);//初始化NVIC
-	TIM_ClearITPendingBit(TIM6, TIM_IT_Update);//清除TIM3更新中断标志
-	TIM_Cmd(TIM6, ENABLE);//使能TIM3
-}
+// 	TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);//允许更新中断
+// 	NVIC_InitTypeDef NVIC_InitStructure;
+// 	NVIC_InitStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;//TIM3中断
+// 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;//抢占优先级
+// 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;//响应优先级
+// 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;//使能外部中断通道
+// 	NVIC_Init(&NVIC_InitStructure);//初始化NVIC
+// 	TIM_ClearITPendingBit(TIM6, TIM_IT_Update);//清除TIM3更新中断标志
+// 	TIM_Cmd(TIM6, ENABLE);//使能TIM3
+// }
 
 
 //-----------------------------------------------------------------
@@ -254,49 +254,49 @@ void ADS8361_Read_Data_Mode3(uint16_t *Data_A, uint16_t *Data_B)
 
 
 
-void TIM6_DAC_IRQHandler(void)
-{
-	static uint16_t num;//定义一个静态变量,不会被初始化
-    uint8_t i = 0;
-	uint16_t DA_data[2];//DA数据
-	uint16_t DB_data[2];//DB数据
-	float   Analog_A[2];
-	float   Analog_B[2];
+// void TIM6_DAC_IRQHandler(void)
+// {
+// 	static uint16_t num;//定义一个静态变量,不会被初始化
+//     uint8_t i = 0;
+// 	uint16_t DA_data[2];//DA数据
+// 	uint16_t DB_data[2];//DB数据
+// 	float   Analog_A[2];
+// 	float   Analog_B[2];
 
-	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)//检查TIM3更新中断发生与否
-	{
-		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
-		ADS8361_Read_Data_Mode3(DA_data, DB_data);
-        for(i=0; i<2; i++)
-	   {
-			if(DA_data[i] & 0x8000)
-			{
-				Analog_A[i] = ((DA_data[i] ^ 0x7FFF + 1)*5000.0/65535) - 2500;
-			}
-			else
-			{
-				Analog_A[i] = (DA_data[i]*5000.0/65535);
-			}
-			if(DB_data[i] & 0x8000)
-			{
-				Analog_B[i] = ((DB_data[i] ^ 0x7FFF + 1)*5000.0/65535) - 2500;
-			}
-			else
-			{
-				Analog_B[i] = (DB_data[i]*5000.0/65535);
-			}	
+// 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)//检查TIM3更新中断发生与否
+// 	{
+// 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
+// 		ADS8361_Read_Data_Mode3(DA_data, DB_data);
+//         for(i=0; i<2; i++)
+// 	   {
+// 			if(DA_data[i] & 0x8000)
+// 			{
+// 				Analog_A[i] = ((DA_data[i] ^ 0x7FFF + 1)*5000.0/65535) - 2500;
+// 			}
+// 			else
+// 			{
+// 				Analog_A[i] = (DA_data[i]*5000.0/65535);
+// 			}
+// 			if(DB_data[i] & 0x8000)
+// 			{
+// 				Analog_B[i] = ((DB_data[i] ^ 0x7FFF + 1)*5000.0/65535) - 2500;
+// 			}
+// 			else
+// 			{
+// 				Analog_B[i] = (DB_data[i]*5000.0/65535);
+// 			}	
 			
-		}
-		ADS8361_DB_data1[num] = Analog_A[0];
-		num++;
-		if(num == 1024)
-		{
-			num = 0;
-			TIM_Cmd(TIM6, DISABLE);//关闭TIM3
-			ADS8361_Recive_Flag = 1;
-		}		
-	}	
-}
+// 		}
+// 		ADS8361_DB_data1[num] = Analog_A[0];
+// 		num++;
+// 		if(num == 1024)
+// 		{
+// 			num = 0;
+// 			TIM_Cmd(TIM6, DISABLE);//关闭TIM3
+// 			ADS8361_Recive_Flag = 1;
+// 		}		
+// 	}	
+// }
 
 
 

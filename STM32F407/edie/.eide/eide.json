@@ -45,6 +45,12 @@
         "files": [
           {
             "path": "../board/board.c"
+          },
+          {
+            "path": "../board/sys.h"
+          },
+          {
+            "path": "../board/sys.c"
           }
         ],
         "folders": []
@@ -261,10 +267,10 @@
             "path": "../project/MDK(V5)/Hardware/oledfont.h"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/ads8361.c"
+            "path": "../project/MDK(V5)/Hardware/ad9220_dcmi.c"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/ads8361.h"
+            "path": "../project/MDK(V5)/Hardware/ad9220_dcmi.h"
           }
         ],
         "folders": []
@@ -288,7 +294,11 @@
   },
   "targets": {
     "f407project": {
-      "excludeList": [],
+      "excludeList": [
+        "<virtual_root>/Hardware/ads8361.c",
+        "<virtual_root>/Hardware/AD9220.C",
+        "<virtual_root>/Hardware/AD9220.c"
+      ],
       "toolchain": "AC5",
       "compileConfig": {
         "cpuType": "Cortex-M4",

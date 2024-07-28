@@ -762,6 +762,16 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\ads8361.h</FilePath>
             </File>
+            <File>
+              <FileName>AD9220.C</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\AD9220.C</FilePath>
+            </File>
+            <File>
+              <FileName>AD9220.H</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\AD9220.H</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
