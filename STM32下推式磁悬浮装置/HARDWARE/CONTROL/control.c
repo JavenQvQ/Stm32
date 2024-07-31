@@ -7,12 +7,12 @@
 
 
 float ADC_ConvertedValueLocal[3] = {0, 0, 0};
-int COIL_X=0, COIL_Y=0, COIL_Z=0;//X,Y,Zçº¿åœˆPWM
+int COIL_X=0, COIL_Y=0, COIL_Z=0;
 int ADC_VALUE[3] = {0,0,0};
 
 void limiting_PWM(void)
 {
-	int amplitude=3500; //PWMæ»¡å¹…æ˜¯3600 é™åˆ¶åœ¨3500,å ç©ºæ¯”æ˜¯COIL_X/3600
+	int amplitude=3500; //PWMÂú·ùÊÇ3600 ÏŞÖÆÔÚ3500
     
 	if(COIL_X < -amplitude) 
 		COIL_X = -amplitude;	
@@ -39,11 +39,10 @@ int myabs(int num)
 
 
 /**
-  * @brief  ç”µæœºPWMå¹…å€¼,XIN1æ˜¯PB12ï¼ŒXIN2æ˜¯PB13ï¼ŒPWMXæ˜¯TIM1_CH1,YIN1æ˜¯PB14ï¼ŒYIN2æ˜¯PB15ï¼ŒPWMYæ˜¯TIM1_CH4
-  * 
-  * @param  moto1ï¼šç”µæœº1PWM
-  * @param  moto2ï¼šç”µæœº2PWM
-  * @retval æ— 
+  * @brief  µç»úPWM·ùÖµ
+  * @param  moto1£ºµç»ú1PWM
+  * @param  moto2£ºµç»ú2PWM
+  * @retval ÎŞ
   */
 void set_PWM(int coil1,int coil2)
 {	
@@ -57,7 +56,7 @@ void set_PWM(int coil1,int coil2)
 		XIN1=1;
 		XIN2=0;
 	}
-	PWMX = myabs(coil1);//PWMèµ‹å€¼
+	PWMX = myabs(coil1);
 	
 	if(coil2<0)	
 	{
@@ -74,35 +73,35 @@ void set_PWM(int coil1,int coil2)
 
 
 /**
-  * @brief  æ§åˆ¶å‡½æ•°ï¼ŒPIDæ•´åˆå‡½æ•°,æ¯1msè°ƒç”¨ä¸€æ¬¡,é€šè¿‡TIM3ä¸­æ–­è°ƒç”¨,é¢‘ç‡1KHz
-  * @param 	æ— 
+  * @brief  ¿ØÖÆº¯Êı£¬PIDÕûºÏº¯Êı
+  * @param 	ÎŞ
   * @retval 0
   */
 
 void TIM3_IRQHandler(void)
 {
-	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)//æ£€æŸ¥æŒ‡å®šçš„TIMä¸­æ–­å‘ç”Ÿä¸å¦:TIM ä¸­æ–­æº 
+	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)//¼ì²éÖ¸¶¨µÄTIMÖĞ¶Ï·¢ÉúÓë·ñ:TIM ÖĞ¶ÏÔ´ 
 	{
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update); //æ¸…é™¤ä¸­æ–­
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update); //Çå³ıÖĞ¶Ï
 		
-		//ä¼ é€’ADCå€¼
+		//´«µİADCÖµ
 		ADC_VALUE[0] = ADC_ConvertedValue[0];
 		ADC_VALUE[1] = ADC_ConvertedValue[1];
 		ADC_VALUE[2] = ADC_ConvertedValue[2];
 		
-		//PIDè®¡ç®—PWM
+		//PID¼ÆËãPWM
 		COIL_X = x_pid_calc(ADC_VALUE[0]);
 		COIL_Y = y_pid_calc(ADC_VALUE[1]);
-		limiting_PWM(); //é™å¹…
+		limiting_PWM(); //ÏŞ·ù
 		
-		//æ²¡æœ‰æµ®å­æ—¶å…³é—­çº¿åœˆ
+		//Ã»ÓĞ¸¡×ÓÊ±¹Ø±ÕÏßÈ¦
 		if(ADC_VALUE[2] > 3660)
 		{
 			COIL_X = 0;
 			COIL_Y = 0;
 		}
 		
-		//è®¾ç½®çº¿åœˆPWM
+		//ÉèÖÃÏßÈ¦PWM
 		set_PWM(COIL_X, COIL_Y);
 		
 	}

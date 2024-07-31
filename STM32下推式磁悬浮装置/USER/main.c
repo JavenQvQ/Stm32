@@ -4,8 +4,8 @@
   * @version V1.0
   * @author  fengweiguo
 			https://blog.csdn.net/qq_46554815?spm=1000.2115.3001.5343
-  * @brief   STM32ÏÂÍÆÊ½´ÅĞü¸¡×°ÖÃÖ÷º¯Êı
-			¹¤³Ì´úÂë½ö¹©²Î¿¼£¬Çë½áºÏ×Ô¼ºµÄÓ²¼ş¡£
+  * @brief   STM32ä¸‹æ¨å¼ç£æ‚¬æµ®è£…ç½®ä¸»å‡½æ•°
+			å·¥ç¨‹ä»£ç ä»…ä¾›å‚è€ƒï¼Œè¯·ç»“åˆè‡ªå·±çš„ç¡¬ä»¶ã€‚
   ******************************************************************************
 */
 #include "sys.h"
@@ -28,27 +28,44 @@
 
 int main(void)
 {
+	u16 t;  
+	u16 len;	
+	u8 flag_len=0;
+	
 	delay_init(); 
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-	uart_init(115200); //´®¿Ú1³õÊ¼»¯
+	uart_init(115200); //ä¸²å£1åˆå§‹åŒ–
 	
-	LED_Init(); //ÏµÍ³°å°åÔØLED³õÊ¼»¯
-	ADC1_Init(); //ADC1³õÊ¼»¯
-	coil_PWM_init(3599, 0);//µç»úPWM³õÊ¼»¯,20kHZ
+	LED_Init(); //ç³»ç»Ÿæ¿æ¿è½½LEDåˆå§‹åŒ–
+	ADC1_Init(); //ADC1åˆå§‹åŒ–
+	coil_PWM_init(3599, 0);
 	pid_init();
 	motor_init();
-	OLED_Init(); //OLED³õÊ¼»¯
+	OLED_Init(); //OLEDåˆå§‹åŒ–
 	OLED_ShowString(35 ,0, "Magnetic", 16);
 	OLED_ShowString(0, 16, "HC-05 support", 12);
 	OLED_ShowString(0, 52, "by fengweiguo", 12);
 	OLED_Refresh_Gram();
 	printf("ready\r\n");
-	TIM3_Init();//¿ØÖÆPIDÖÜÆÚ
+	TIM3_Init();//æ§åˆ¶PIDå‘¨æœŸ
 
 	while(1)
 	{	
+		printf("%d\n",ADC_ConvertedValue[0]);
 		
-
+		if(USART_RX_STA&0x8000)
+		{					   
+			len=USART_RX_STA&0x3fff;//å¾—åˆ°æ­¤æ¬¡æ¥æ”¶åˆ°çš„æ•°æ®é•¿åº¦
+			flag_len ++;
+			printf("\r\næ‚¨å‘é€çš„æ¶ˆæ¯ä¸º:\r\n\r\n");
+			for(t=0;t<len;t++)
+			{
+				USART_SendData(USART1, USART_RX_BUF[t]);//å‘ä¸²å£1å‘é€æ•°æ®
+				while(USART_GetFlagStatus(USART1,USART_FLAG_TC)!=SET);//ç­‰å¾…å‘é€ç»“æŸ
+			}
+			printf("\r\n\r\n");//æ’å…¥æ¢è¡Œ
+			USART_RX_STA=0;
+		}
 		
 	} /*while(1)*/
 } /*main*/
