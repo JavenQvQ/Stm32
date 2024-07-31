@@ -330,7 +330,6 @@
           "../HARDWARE/PID",
           "../HARDWARE/TIM",
           "../../Template",
-          ".cmsis/include",
           "RTE/_Magnetic"
         ],
         "libList": [],
