@@ -25,7 +25,7 @@ void Serial_Init(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);					//将PA9引脚初始化为复用推挽输出
+	GPIO_Init(GPIOA, &GPIO_InitStructure);					//将PA9引脚初始化为复用推挽输出,
 	
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
@@ -135,11 +135,7 @@ void Serial_SendNumber(uint32_t Number, uint8_t Length)
   * 参    数：保持原始格式即可，无需变动
   * 返 回 值：保持原始格式即可，无需变动
   */
-int fputc(int ch, FILE *f)
-{
-	Serial_SendByte(ch);			//将printf的底层重定向到自己的发送字节函数
-	return ch;
-}
+
 
 /**
   * 函    数：自己封装的prinf函数
@@ -220,3 +216,49 @@ void Uart1Send(unsigned char *p_data, unsigned int uiSize)
 	}
 	while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
 }
+
+void Serial2_Init()
+{
+    // 1. 使能 GPIOA 和 USART2 的时钟
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+
+    // 2. 配置 GPIOA 的 PA2 为 USART2_TX，PA3 为 USART2_RX
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; // PA2 (USART2_TX)
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; // 复用推挽输出
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3; // PA3 (USART2_RX)
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; // 浮空输入
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    // 3. 配置 USART2 参数
+    USART_InitTypeDef USART_InitStructure;
+    USART_InitStructure.USART_BaudRate = 115200; // 波特率
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b; // 8位数据
+    USART_InitStructure.USART_StopBits = USART_StopBits_1; // 1个停止位
+    USART_InitStructure.USART_Parity = USART_Parity_No; // 无奇偶校验
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None; // 无硬件流控制
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; // 使能接收和发送
+    USART_Init(USART2, &USART_InitStructure);
+
+    // 4. 使能 USART2
+    USART_Cmd(USART2, ENABLE);
+}
+
+void Serial2_SendByte(uint8_t Byte)
+{
+	USART_SendData(USART2, Byte);		//将字节数据写入数据寄存器，写入后USART自动生成时序波形
+	while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);	//等待发送完成
+	/*下次写入数据寄存器会自动清除发送完成标志位，故此循环后，无需清除标志位*/
+}
+
+int fputc(int ch, FILE *f)
+{
+	Serial2_SendByte(ch);			//将printf的底层重定向到自己的发送字节函数
+	return ch;
+}
+
+

@@ -2,6 +2,7 @@
 #include "os_delay.h"
 #include "Serial.h"
 #include "oled.h"
+#include "Delay.h"
 
 
 static SerialWrite p_WitSerialWriteFunc = NULL;
@@ -104,17 +105,17 @@ static void CopeWitData(uint8_t ucIndex, uint16_t *p_data, uint32_t uiLen)
     uiReg1Len = 4;
     switch(ucIndex)
     {
-        case WIT_ACC:   uiReg1 = AX;    uiReg1Len = 3;  uiReg2 = TEMP;  uiReg2Len = 1;  break;
-        case WIT_ANGLE: uiReg1 = Roll;  uiReg1Len = 3;  uiReg2 = VERSION;  uiReg2Len = 1;  break;
-        case WIT_TIME:  uiReg1 = YYMM;	break;
-        case WIT_GYRO:  uiReg1 = GX;  uiLen = 3;break;
-        case WIT_MAGNETIC: uiReg1 = HX;  uiLen = 3;break;
-        case WIT_DPORT: uiReg1 = D0Status;  break;
-        case WIT_PRESS: uiReg1 = PressureL;  break;
-        case WIT_GPS:   uiReg1 = LonL;  break;
-        case WIT_VELOCITY: uiReg1 = GPSHeight;  break;
-        case WIT_QUATER:    uiReg1 = q0;  break;
-        case WIT_GSA:   uiReg1 = SVNUM;  break;
+        case WIT_ACC:   uiReg1 = AX;    uiReg1Len = 3;  uiReg2 = TEMP;  uiReg2Len = 1;  break;//加速度
+        case WIT_ANGLE: uiReg1 = Roll;  uiReg1Len = 3;  uiReg2 = VERSION;  uiReg2Len = 1;  break;//角度
+        case WIT_TIME:  uiReg1 = YYMM;	break;//时间
+        case WIT_GYRO:  uiReg1 = GX;  uiLen = 3;break;//陀螺仪
+        case WIT_MAGNETIC: uiReg1 = HX;  uiLen = 3;break;//磁场
+        case WIT_DPORT: uiReg1 = D0Status;  break;//数字端口
+        case WIT_PRESS: uiReg1 = PressureL;  break;//气压
+        case WIT_GPS:   uiReg1 = LonL;  break;//GPS
+        case WIT_VELOCITY: uiReg1 = GPSHeight;  break;//速度
+        case WIT_QUATER:    uiReg1 = q0;  break;//四元数
+        case WIT_GSA:   uiReg1 = SVNUM;  break;//GSA
         case WIT_REGVALUE:  uiReg1 = s_uiReadRegIndex;  break;
 		default:
 			return ;
@@ -143,7 +144,7 @@ void WitSerialDataIn(uint8_t ucData)
     uint8_t ucSum;
 
     if(p_WitRegUpdateCbFunc == NULL)return ;
-    s_ucWitDataBuff[s_uiWitDataCnt++] = ucData;
+    s_ucWitDataBuff[s_uiWitDataCnt++] = ucData;//数据存入缓冲区
     switch(s_uiProtoclo)
     {
         case WIT_PROTOCOL_NORMAL:
@@ -166,7 +167,7 @@ void WitSerialDataIn(uint8_t ucData)
                 usData[1] = ((uint16_t)s_ucWitDataBuff[5] << 8) | (uint16_t)s_ucWitDataBuff[4];
                 usData[2] = ((uint16_t)s_ucWitDataBuff[7] << 8) | (uint16_t)s_ucWitDataBuff[6];
                 usData[3] = ((uint16_t)s_ucWitDataBuff[9] << 8) | (uint16_t)s_ucWitDataBuff[8];
-                CopeWitData(s_ucWitDataBuff[1], usData, 4);
+                CopeWitData(s_ucWitDataBuff[1], usData, 4);//处理数据
                 s_uiWitDataCnt = 0;
             }
         break;
@@ -393,7 +394,7 @@ char CheckRange(short sTemp,short sMin,short sMax)
     else return 0;
 }
 /*Acceleration calibration demo*/
-int32_t WitStartAccCali(void)
+int32_t WitStartAccCali(void)//加速度校准
 {
 /*
 	First place the equipment horizontally, and then perform the following operations
@@ -415,7 +416,7 @@ int32_t WitStopAccCali(void)
 	return WIT_HAL_OK;
 }
 /*Magnetic field calibration*/
-int32_t WitStartMagCali(void)
+int32_t WitStartMagCali(void)//磁场校准
 {
 	if(WitWriteReg(KEY, KEY_UNLOCK) != WIT_HAL_OK)	return  WIT_HAL_ERROR;
 	if(s_uiProtoclo == WIT_PROTOCOL_MODBUS)	p_WitDelaymsFunc(20);
@@ -559,22 +560,26 @@ void Wit901BC_GetData(float *Gz,float *Az)
 				fAcc[i] = sReg[AX+i] / 32768.0f * 16.0f;
                 fAngle[i] = sReg[Roll+i] / 32768.0f * 180.0f;
 			}
-			if(s_cDataUpdate & ACC_UPDATE)
+			if(s_cDataUpdate & ACC_UPDATE)//加速度计数据更新
 			{
-				*Gz= fAcc[2];
+				Gz[0] = fAcc[0];//X轴加速度
+                Gz[1] = fAcc[1];//Y轴加速度
+                Gz[2] = fAcc[2];//Z轴加速度
 				s_cDataUpdate &= ~ACC_UPDATE;//清除标志位
 			}
 
 			if(s_cDataUpdate & ANGLE_UPDATE)
 			{
-                *Az= fAngle[2];
+                Az[0] = fAngle[0];//Roll
+                Az[1] = fAngle[1];//Pitch
+                Az[2] = fAngle[2];//Yaw
 				s_cDataUpdate &= ~ANGLE_UPDATE;//清除标志位
 			}
 		}
 }
 void Delayms(uint16_t ucMs)
 {
-	delay_ms(ucMs);
+	Delay_ms(ucMs);
 }
 
 /*
@@ -589,6 +594,9 @@ void Wit901BC_Init(void)
 	WitSerialWriteRegister(Uart1Send);//Wit串口写函数注册
 	WitRegisterCallBack(SensorDataUpdata);//Wit传感器数据更新回调函数注册
 	WitDelayMsRegister(Delayms);//Wit延时函数注册
+    
+    WitSetBandwidth(BANDWIDTH_256HZ); // 设置带宽
+    WitSetOutputRate(RRATE_200HZ); // 设置输出速率
 }
 
 

@@ -18,5 +18,5 @@ void Serial_SendPacket(void);
 uint8_t Serial_GetRxFlag(void);
 
 void Uart1Send(unsigned char *p_data, unsigned int uiSize);
-
+void Serial2_Init();
 #endif

@@ -337,7 +337,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_STDPERIPH_DRIVER</Define>
+              <Define>USE_STDPERIPH_DRIVER,ARM_MATH_CM3</Define>
               <Undefine></Undefine>
               <IncludePath>.\Start;.\Library;.\User;.\System;.\Hardware</IncludePath>
             </VariousControls>
@@ -743,6 +743,21 @@
               <FileType>5</FileType>
               <FilePath>.\Hardware\OLED_Font.h</FilePath>
             </File>
+            <File>
+              <FileName>REG.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\REG.h</FilePath>
+            </File>
+            <File>
+              <FileName>wit_c_sdk.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Hardware\wit_c_sdk.c</FilePath>
+            </File>
+            <File>
+              <FileName>wit_c_sdk.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Hardware\wit_c_sdk.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -767,6 +782,11 @@
               <FileName>stm32f10x_it.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\User\stm32f10x_it.h</FilePath>
+            </File>
+            <File>
+              <FileName>arm_cortexM3l_math.lib</FileName>
+              <FileType>4</FileType>
+              <FilePath>.\User\arm_cortexM3l_math.lib</FilePath>
             </File>
           </Files>
         </Group>
