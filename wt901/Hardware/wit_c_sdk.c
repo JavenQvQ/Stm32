@@ -594,8 +594,6 @@ void Wit901BC_Init(void)
 	WitSerialWriteRegister(Uart1Send);//Wit串口写函数注册
 	WitRegisterCallBack(SensorDataUpdata);//Wit传感器数据更新回调函数注册
 	WitDelayMsRegister(Delayms);//Wit延时函数注册
-    
-    WitSetBandwidth(BANDWIDTH_256HZ); // 设置带宽
     WitSetOutputRate(RRATE_200HZ); // 设置输出速率
 }
 
