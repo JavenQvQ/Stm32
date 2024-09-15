@@ -36,7 +36,7 @@ void TASK1(void)
     AZ1 = (float)i32SensorZ / ADXL355_RANGE_2G_SCALE;
     AY1= (float)i32SensorY / ADXL355_RANGE_2G_SCALE;
     AX1 = (float)i32SensorX / ADXL355_RANGE_2G_SCALE;
-
+    float totalAcceleration = sqrt(AX1 * AX1 + AY1 * AY1 + AZ1 * AZ1);
 // 	static float Gz_Press[150];
 //     static uint16_t i = 0;
 //     static int8_t Press_Flag = 0;
@@ -152,7 +152,7 @@ void TASK1(void)
 //         }
 //         break;
 //     }
-     printf("%.3f,%.3f,%.3f\n",AX1,AY1,AZ1);
+     printf("%.3f\n",totalAcceleration);
 }
 /** 
  * @brief  校准函数
