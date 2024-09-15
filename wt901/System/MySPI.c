@@ -261,7 +261,7 @@ void MySPI2_Harware_Init(void)
    
     SPI_Cmd(SPI2, ENABLE);//使能SPI2
     MySPI2_Hardware_SelectSS(1);//片选拉高
-    SPI_I2S_SendData(SPI2, 0xff);//发送数据
+
 }
 
 

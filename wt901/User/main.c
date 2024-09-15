@@ -152,7 +152,7 @@ void TASK1(void)
 //         }
 //         break;
 //     }
-     printf("%.3f\n",AZ1);	//串口打印Gz的值
+     printf("%.3f,%.3f,%.3f\n",AX1,AY1,AZ1);
 }
 /** 
  * @brief  校准函数
@@ -165,9 +165,6 @@ void Calibrate(void)
 }
 int main(void)
 {        
-    uint8_t ui24Result[3];//存放读取的数据
-    uint32_t ui32Result;
-    uint8_t ui8temp;
 	/*模块初始化*/
 	OLED_Init();		//OLED初始化
 	//Key_Init();		//按键初始化
@@ -180,19 +177,11 @@ int main(void)
 	{
 		if(GetDate_Flag == 1)
 		{
-			//TASK1();
+			TASK1();
 			GetDate_Flag = 0;
 		}
 		OLED_ShowFloat(2, 1,AZ1);	//显示Gz的值
 		OLED_ShowNum(4, 1, countx, 3);	//显示按压次
-        // Delay_ms(100);
-        MySPI2_Hardware_SelectSS(0);//选择片选
-        MySPI2_Hardware_SwapByte(0x00);
-        ui8temp = MySPI2_Hardware_SwapByte(0xff);
-        MySPI2_Hardware_SelectSS(1);//取消片选
-        //ui8temp = (uint8_t) ADXL355_ReadRegister(ADXL355_POWER_CTL, SPI_READ_ONE_REG);
-        printf("%x\n",ui8temp);
-        
 	}
 }
 
