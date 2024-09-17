@@ -13,8 +13,8 @@ void TIM2_Init(void)
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
     // 配置 TIM2 基本定时器
-    TIM_TimeBaseStructure.TIM_Period = 49; // 自动重装载值
-    TIM_TimeBaseStructure.TIM_Prescaler = 7199; // 预分频器
+    TIM_TimeBaseStructure.TIM_Period = 99; // 自动重装载值,
+    TIM_TimeBaseStructure.TIM_Prescaler = 719; // 预分频器
     TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
