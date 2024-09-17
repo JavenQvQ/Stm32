@@ -1,0 +1,179 @@
+#include "stm32f10x.h"                  // Device header
+#include "Delay.h"
+#include <math.h>
+#include "OLED.h"
+#include "TIM.h"
+#include "Serial.h"
+#include "arm_math.h"
+#include "ADXL355.h"
+#include "MySPI.h"
+
+#define Task1_ID 1//任务1的ID
+
+float G[3];
+float A[3];
+float Gz;
+uint16_t countx = 0; // 用于按压次数计数
+int8_t GetDate_Flag = 0;
+float totalAcceleration;
+float AX1, AY1, AZ1;
+
+ADXL355_HandleTypeDef ADXL355_t;
+void ADXL355(void)
+{
+    ADXL355_t.ADXL355_Range = ADXL355_RANGE_2G;
+    ADXL355_t.ADXL355_LowPass = ADXL355_ODR_4000;
+    ADXL355_t.ADXL355_HighPass = 0x00;
+    ADXL355_Init(&ADXL355_t);
+}
+
+
+void TASK1(void)
+{
+
+    ADXL355_ReadData();
+    const float scale = 1.0f / ADXL355_RANGE_2G_SCALE;
+    AZ1 = (float)i32SensorZ * scale;
+    AX1 = (float)i32SensorX * scale;
+    AY1 = (float)i32SensorY * scale;
+    arm_sqrt_f32(AX1 * AX1 + AY1 * AY1 + AZ1 * AZ1, &totalAcceleration);
+	static float Gz_Press[150];
+    static uint16_t i = 0;
+    static int8_t stage = 0; // 阶段标志
+	static uint8_t currentIndex = 0; // 当前检测的位置
+	static uint8_t Gz_Press_Start;//按压开始数组索引
+	static uint8_t Gz_Press_End;//按压结束数组索引
+	
+
+	//更新Gz_Press数组
+	Gz_Press[i] = totalAcceleration-0.98;
+    i = (i + 1) % 150;//循环数组
+
+   // 检测逻辑
+    int consecutiveCount = 0;//连续判断是否满足条件的计数
+    switch (stage)
+    {
+    case 0:
+        // 检测至少连续20个数字小于-0.01
+        for (int j = currentIndex; j < currentIndex + 150; j++)
+        {
+            int index = j % 150; // 确保索引在数组范围内
+            if (Gz_Press[index] < -0.01)
+            {
+				if (consecutiveCount == 0) {
+                    Gz_Press_Start = index; // 记录开始检测的位置
+                }
+                consecutiveCount++;
+			if (consecutiveCount >= 20)
+            {
+                // 如果Gz的值大于0.1，进入阶段1
+                if (Gz_Press[index+1] > 0.1)
+                {
+                    stage = 1;
+                    currentIndex = index; // 更新当前检测的位置
+                }
+                break;
+            }
+            }
+            else
+            {
+                consecutiveCount = 0;
+            }
+
+        }
+        break;
+    case 1:
+        // 检测至少连续40个数字大于0.01
+        for (int j = currentIndex; j < currentIndex + 150; j++)
+        {
+            int index = j % 150; // 确保索引在数组范围内
+            if (Gz_Press[index] > 0.01)
+            {
+                consecutiveCount++;
+                if (consecutiveCount >= 20)
+                {
+                    // 如果Gz的值小于-0.01，进入阶段2
+                    if (Gz_Press[index+1] < -0.01)
+                    {
+                        stage = 2;
+                        currentIndex = index; // 更新当前检测的位置
+                    }
+                    break;
+                }
+            }
+            else
+            {
+                consecutiveCount = 0;
+            }
+        }
+        break;
+    case 2:
+        // 检测至少连续40个数字小于-0.01
+        for (int j = currentIndex; j < currentIndex + 150; j++)
+        {
+            int index = j % 150; // 确保索引在数组范围内
+            if (Gz_Press[index] < -0.01)
+            {
+                consecutiveCount++;
+                if (consecutiveCount >= 20)
+                {
+					if(Gz_Press[index+1] > 0)
+					{
+						countx++;
+                    	stage = 0;
+                   		// 清空Gz_Press数组
+						memset(Gz_Press, 0, sizeof(Gz_Press));//清空数组
+                    	i = 0;
+                    	currentIndex = 0; // 重置当前检测的位置
+                    	break;
+					}
+
+                }
+            }
+            else
+            {
+                consecutiveCount = 0;
+            }
+        }
+        break;
+    }
+     printf("%.3f\n",totalAcceleration);
+}
+/** 
+ * @brief  校准函数
+ * @param  无
+ * @retval 无
+**/
+int main(void)
+{        
+	/*模块初始化*/
+	OLED_Init();		//OLED初始化
+	//Key_Init();		//按键初始化
+	TIM2_Init();	//定时器初始化
+    ADXL355();
+	Serial2_Init();
+    ADXL355_Startup();
+	while (1)
+	{
+		if(GetDate_Flag == 1)
+		{
+			TASK1();
+			GetDate_Flag = 0;
+		}
+		OLED_ShowNum(4, 1, countx, 3);	//显示按压次
+	}
+}
+
+// TIM2 中断处理函数
+void TIM2_IRQHandler(void)
+{
+    if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+    {
+        // 处理中断
+        GetDate_Flag = 1;
+
+        TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+    }
+    
+
+}
