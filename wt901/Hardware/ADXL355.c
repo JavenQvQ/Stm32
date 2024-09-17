@@ -22,7 +22,7 @@ uint32_t volatile ui32SensorT;
  ******************************/
 void ADXL355_Select(void)
 {
-    MySPI2_Hardware_SelectSS(0);//选择片选
+    MySPI_W_SS(0);//选择片选
 }
 /*******************************
  * 函    数：ADXL355_Unselect
@@ -32,7 +32,7 @@ void ADXL355_Select(void)
  ******************************/
 void ADXL355_Unselect(void)
 {
-    MySPI2_Hardware_SelectSS(1);//取消片选
+    MySPI_W_SS(1);//取消片选
 }
 
 
@@ -44,7 +44,7 @@ void ADXL355_Unselect(void)
  ****************************/
 void ADXL355_Init(ADXL355_HandleTypeDef *ADXL355_t)
 {
-    MySPI2_Harware_Init();//硬件SPI2初始化
+    MySPI_Hardware_Init();//硬件SPI2初始化
     ADXL355_Range(ADXL355_t->ADXL355_Range);//设置量程
     ADXL355_Filter(ADXL355_t->ADXL355_HighPass, ADXL355_t->ADXL355_LowPass);//设置滤波器
     ADXL355_Startup();//启动ADXL355
@@ -63,7 +63,7 @@ void ADXL355_WriteRegister(uint8_t ui8address,	uint8_t ui8Data)
 	data[0] = ((ui8address << 1) | ADXL355_WRITE);//写入地址
 	data[1] = ui8Data;
     ADXL355_Select();
-    MySPI2_Hardware_WriteBytes(data, 2);//写入数据
+    MySPI_Hardware_WriteBytes(data, 2);//写入数据
     ADXL355_Unselect();
 }
 
@@ -84,21 +84,21 @@ uint32_t ADXL355_ReadRegister(uint8_t ui8address,enRegsNum enRegs)
 
     ui8writeAddress = ((ui8address << 1) | ADXL355_READ);//读取地址
     ADXL355_Select();
-    MySPI2_Hardware_WriteBytes(&ui8writeAddress, 1);//写入地址
+    MySPI_Hardware_WriteBytes(&ui8writeAddress, 1);//写入地址
 
     if (enRegs ==SPI_READ_ONE_REG)//读取一个寄存器
     {
-        MySPI2_Hardware_ReadBytes(ui24Result, 1);//读取一个字节
+        MySPI_Hardware_ReadBytes(ui24Result, 1);//读取一个字节
         ui32Result = ui24Result[0];
     }
     if(enRegs == SPI_READ_TWO_REG)///* 仅用于温度、X、Y、z8偏移和阈值寄存器*/
     {
-        MySPI2_Hardware_ReadBytes(ui24Result, 2);//读取两个字节
+        MySPI_Hardware_ReadBytes(ui24Result, 2);//读取两个字节
         ui32Result = (ui24Result[0] << 8) | ui24Result[1];
     }
     else//仅用于 X，Y，Z 轴数据寄存器
     {
-        MySPI2_Hardware_ReadBytes(ui24Result, 3);//读取三个字节
+        MySPI_Hardware_ReadBytes(ui24Result, 3);//读取三个字节
         ui32Result = (ui24Result[0] << 16) | (ui24Result[1] << 8) | ui24Result[2];
     }
     ADXL355_Unselect();

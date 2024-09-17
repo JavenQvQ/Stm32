@@ -3,7 +3,6 @@
 #include <math.h>
 #include "OLED.h"
 #include "TIM.h"
-#include "KEY.h"
 #include "Serial.h"
 #include "wit_c_sdk.h"
 #include "arm_math.h"
@@ -173,6 +172,7 @@ int main(void)
 	TIM2_Init();	//定时器初始化
     ADXL355();
 	Serial2_Init();
+    ADXL355_Startup();
 	while (1)
 	{
 		if(GetDate_Flag == 1)
