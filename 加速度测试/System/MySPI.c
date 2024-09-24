@@ -118,7 +118,7 @@ void MySPI_Hardware_Init(void)
     SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
     SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;//第二个时钟沿采样数据
     SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;//软件控制片选
-    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_128;//波特率预分频128
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;//波特率预分频16
     SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;//高位在前
     SPI_InitStructure.SPI_CRCPolynomial = 7;//CRC多项式
     SPI_Init(SPI1, &SPI_InitStructure);

@@ -1,3 +1,4 @@
+/*woshinidie*/
 #include "ADXL355.h"
 #include "MySPI.h"
 #include "stm32f10x.h"
@@ -29,6 +30,7 @@ void ADXL355_Select(void)
  * 参    数：无
  * 返 回 值：无
  * 描    述：取消选择ADXL355
+ 
  ******************************/
 void ADXL355_Unselect(void)
 {

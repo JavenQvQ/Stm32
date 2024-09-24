@@ -213,6 +213,12 @@
           },
           {
             "path": "../System/TIM.h"
+          },
+          {
+            "path": "../System/bsp_i2c.c"
+          },
+          {
+            "path": "../System/bsp_i2c.h"
           }
         ],
         "folders": []

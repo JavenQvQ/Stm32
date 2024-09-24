@@ -2,29 +2,35 @@
 #include "stm32f10x.h"                  // Device header
 #include "Delay.h"
 #include <math.h>
-#include "OLED.h"
+#include "bsp_i2c.h"
 #include "TIM.h"
 #include "Serial.h"
 #include "arm_math.h"
 #include "ADXL355.h"
 #include "MySPI.h"
 
-#define Task1_ID 1//ä»»åŠ¡1çš„ID
+#define Task1_ID 1//ÈÎÎñ1µÄID
 
-#define GZ_PRESS_SIZE 40
-uint16_t countx = 0; // ç”¨äºŽæŒ‰åŽ‹æ¬¡æ•°è®¡æ•°
-uint16_t count = 0; // ç”¨äºŽæŒ‰åŽ‹æ¬¡æ•°è®¡æ•°
+uint16_t countx = 0; // ÓÃÓÚ°´Ñ¹´ÎÊý¼ÆÊý
+uint16_t count = 0; // ÓÃÓÚ°´Ñ¹´ÎÊý¼ÆÊý
 int8_t GetDate_Flag = 0;
 float totalAcceleration;
 float AX1, AY1, AZ1;
 float V = 0;
-
+float X = 0;
+float X1 = 0;
+float X2 = 0;
+float Gz_Press[512];
+uint16_t Gz_Press_Index = 0;//ÓÃÓÚ¼ÓËÙ¶ÈÊý¾Ý´æ´¢µÄË÷???
+uint16_t Gz_Press_Index1 = 0;//ÓÃÓÚ¼ÓËÙ¶ÈÊý¾Ý´æ´¢µÄË÷???
+uint8_t Gz_Press_Flag = 0;//ÓÃÓÚ¼ÓËÙ¶ÈÊý¾Ý´æ´¢µÄ±êÖ¾Î»
+float Gz_Press_Fre = 0;//ÓÃÓÚ¼ÓËÙ¶ÈÊý¾Ý´æ´¢µÄ???ÂÊ
 
 ADXL355_HandleTypeDef ADXL355_t;
 void ADXL355(void)
 {
     ADXL355_t.ADXL355_Range = ADXL355_RANGE_4G;
-    ADXL355_t.ADXL355_LowPass = ADXL355_ODR_2000;
+    ADXL355_t.ADXL355_LowPass = ADXL355_ODR_1000;
     ADXL355_t.ADXL355_HighPass = 0x00;
     ADXL355_Init(&ADXL355_t);
 }
@@ -40,106 +46,248 @@ void TASK1(void)
     AY1 = (float)i32SensorY * scale;
     arm_sqrt_f32(AX1 * AX1 + AY1 * AY1 + AZ1 * AZ1, &totalAcceleration);
     totalAcceleration=totalAcceleration-0.98;
+
+
     switch(state)
     {
-        case 0://åŠ é€Ÿåº¦å°äºŽ0çš„æƒ…å†µ
-            if(countx >= 30) 
+        case 0://¼ÓËÙ¶ÈÐ¡ÓÚ0µÄÇé???
+            if(countx >= 60) 
             {
                 if(totalAcceleration >= 0) 
                 {
                     countx = 0;
                     state = 1;
+                    Gz_Press[Gz_Press_Index] = totalAcceleration;
+                    Gz_Press_Index++;
+                    break;
                 }
             }
             if(totalAcceleration <= 0) 
             {
                 countx++;
-                V=V+totalAcceleration;
+                Gz_Press[Gz_Press_Index] = totalAcceleration;
+                Gz_Press_Index++;
             }
             else 
             {
                 countx = 0;
-                V=0;
+                Gz_Press_Index = 0;
             }
             break;
-        case 1://åŠ é€Ÿåº¦å¤§äºŽ0çš„æƒ…å†µ
-            if(countx >= 30) 
+        case 1://¼ÓËÙ¶È´óÓÚ0µÄÇé???
+            if(countx >= 60) 
             {
                 if(totalAcceleration <= 0) 
                 {
                     countx = 0;
                     state = 2;
+                    Gz_Press[Gz_Press_Index] = totalAcceleration;
+                    Gz_Press_Index++;
+                    break;
                 }
             }
             if(totalAcceleration >= 0) 
             {
                 countx++;
-                V=V+totalAcceleration;
+                Gz_Press[Gz_Press_Index] = totalAcceleration;
+                Gz_Press_Index++;
             }
             else 
             {
                 countx = 0;
-                V=0;
+                Gz_Press_Index = 0;
                 state = 0;
             }
             break;
-        case 2://åŠ é€Ÿåº¦å°äºŽ0çš„æƒ…å†µ
-            if(countx >= 30) 
+        case 2://¼ÓËÙ¶ÈÐ¡ÓÚ0µÄÇé???
+            if(countx >= 50) 
             {
                 if(totalAcceleration >= 0) 
                 {
                     countx = 0;
                     count++;
                     state = 0;
+                    Gz_Press[Gz_Press_Index] = totalAcceleration;
+                    Gz_Press_Index1 = Gz_Press_Index;
+                    Gz_Press_Index=0;
+                    Gz_Press_Flag = 1;
+                    break;
                 }
             }
             if(totalAcceleration <= 0) 
             {
                 countx++;
-                V=V+totalAcceleration;
+                Gz_Press[Gz_Press_Index] = totalAcceleration;
+                Gz_Press_Index++;
             }
             else 
             {
                 countx = 0;
-                V=0;
+                Gz_Press_Index = 0;
                 state = 0;
             }
             break;
     }
-    printf("%f\n",totalAcceleration);            
-                
+    //printf("%f\n",totalAcceleration);                      
  }
+
+void TASK2(void)//¼ÆËãÎ»ÒÆ
+{
+    static uint8_t state = 0;
+    static uint16_t Index = 0;
+
+    V = 0;
+    X = 0;
+    X1 = 0;
+    X2 = 0;
+    Gz_Press_Fre = 60/((Gz_Press_Index1 +1)*0.001);
+    for(uint16_t i = 0; i < Gz_Press_Index1+1; i++)
+    {
+        // Ê¹ÓÃ???ÐÎ»ý·Ö·¨¼ÆËãËÙ¶È
+        if (i > 0)
+        {
+            V += 0.5 * (Gz_Press[i] + Gz_Press[i - 1]) * 0.001;
+        }
+        else
+        {
+            V += Gz_Press[i] * 0.001;
+        }
+
+        // Ê¹ÓÃ???ÐÎ»ý·Ö·¨¼ÆËãÎ»ÒÆ
+        if (i > 0)
+        {
+            X += 0.5 * (V + (V - Gz_Press[i] * 0.001)) * 0.001;
+        }
+        else
+        {
+            X += V * 0.001;
+        }
+
+        if (V >= 0)
+        {
+            X1 = X;
+            X = 0;
+            Index = i;
+            state = 1;
+            break;
+        }
+    }
+    if(state == 1)
+    {
+        for (uint16_t i = Index; i < Gz_Press_Index1+1; i++)
+        {
+            // Ê¹ÓÃ???ÐÎ»ý·Ö·¨¼ÆËãËÙ¶È
+            if (i > 0)
+            {
+                V += 0.5 * (Gz_Press[i] + Gz_Press[i - 1]) * 0.001;
+            }
+            else
+            {
+                V += Gz_Press[i] * 0.001;
+            }
+
+            // Ê¹ÓÃ???ÐÎ»ý·Ö·¨¼ÆËãÎ»ÒÆ
+            if (i > 0)
+            {
+                X += 0.5 * (V + (V - Gz_Press[i] * 0.001)) * 0.001;
+            }
+            else
+            {
+                X += V * 0.001;
+            }
+
+            if (i == Gz_Press_Index1)
+            {
+                V = 0;
+                X2 = X;
+                state = 0;
+                break;
+            }
+        }
+    }
+    X=(X2*0.9-X1)*500;
+    if(X<4.5)
+    {
+        if(Gz_Press_Fre>120)
+        {
+            speech_text("°´Ñ¹ÆµÂÊ¹ý¿ì¶øÇÒ°´Ñ¹Ì«Çá",GB2312);
+        }
+        else if(Gz_Press_Fre<100)
+        {
+            speech_text("°´Ñ¹ÆµÂÊÌ«Âý¶øÇÒ°´Ñ¹Ì«Çá",GB2312);
+        }
+        else
+        {
+            speech_text("°´Ñ¹Ì«Çá",GB2312);
+        }
+    }
+    if(X>5.5)
+    {
+        if(Gz_Press_Fre>120)
+        {
+            speech_text("°´Ñ¹ÆµÂÊ¹ý¿ì¶øÇÒ°´Ñ¹Ì«ÖØ",GB2312);
+        }
+        else if(Gz_Press_Fre<100)
+        {
+            speech_text("°´Ñ¹ÆµÂÊÌ«Âý¶øÇÒ°´Ñ¹Ì«ÖØ",GB2312);
+        }
+        else
+        {
+            speech_text("°´Ñ¹Ì«ÖØ",GB2312);
+        }
+    }
+
+    printf("X=%f\nGz_Press_Fre:%f\ncount:%d\n",X,Gz_Press_Fre,count);
+    X=0;
+
+}
+
+
+
+
 /** 
- * @brief  æ ¡å‡†å‡½æ•°
- * @param  æ— 
- * @retval æ— 
+ * @brief  Ð£×¼º¯Êý
+ * @param  ???
+ * @retval ???
 **/
 int main(void)
 {        
-	/*æ¨¡å—åˆå§‹åŒ–*/
-	OLED_Init();		//OLEDåˆå§‹åŒ–
-	//Key_Init();		//æŒ‰é”®åˆå§‹åŒ–
-	TIM2_Init();	//å®šæ—¶å™¨åˆå§‹åŒ–
+	/*Ä£¿é³õ???»¯*/
+    I2C_Bus_Init();
+    SetVolume(10);
+	SetReader(Reader_XiaoPing);
+	TIM2_Init();	//¶¨Ê±Æ÷³õÊ¼»¯
     ADXL355();
 	Serial2_Init();
     ADXL355_Startup();
 	while (1)
 	{
+        if(Gz_Press_Flag == 1)
+        {
+            TASK2();
+            Gz_Press_Flag = 0;
+        }
+
+
 		if(GetDate_Flag == 1)
 		{
 			TASK1();
 			GetDate_Flag = 0;
 		}
-		OLED_ShowNum(4, 1, count, 3);	//æ˜¾ç¤ºæŒ‰åŽ‹æ¬¡
+
+
+        // speech_text("ÄãºÃ",GB2312);
+        // Delay_ms(3000); 
+    
 	}
 }
 
-// TIM2 ä¸­æ–­å¤„ç†å‡½æ•°
+// TIM2 ??????´¦Àíº¯Êý
 void TIM2_IRQHandler(void)
 {
     if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
     {
-        // å¤„ç†ä¸­æ–­
+        // ´¦Àí??????
         GetDate_Flag = 1;
 
         TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
@@ -163,14 +311,14 @@ void TIM2_IRQHandler(void)
     //             }
     //             if(count >= 40) 
     //             {
-    //                 V = V * 0.01; // è®¡ç®—é€Ÿåº¦
-    //                 stage = 1;//è¿›å…¥1é˜¶æ®µ
-    //                 count = 0;//æ¸…é›¶
+    //                 V = V * 0.01; // ¼ÆËãËÙ¶È
+    //                 stage = 1;//½øÈë1½×???
+    //                 count = 0;//ÇåÁã
     //             }
     //             break;
     //     case 1:
     //             V += totalAcceleration*0.01;
-    //             if(V >= 0)//é€Ÿåº¦ä¸º0,åˆ°è¾¾åŽŸæ¥ç‚¹ä¸”åŠ é€Ÿåº¦å¤§äºŽ0.25å¼€å§‹å‡†å¤‡è¿”å›ž
+    //             if(V >= 0)//ËÙ¶È???0,µ½´ïÔ­À´µãÇÒ¼ÓËÙ¶È´óÓÚ0.25¿ªÊ¼×¼±¸·µ???
     //             {
     //                 if(totalAcceleration > 0)
     //                 {
@@ -187,7 +335,7 @@ void TIM2_IRQHandler(void)
     //             break;
     //     case 2:
     //             V += totalAcceleration*0.01;
-    //             if(totalAcceleration <= 0)//åœ¨å›žåŽ»çš„è¿‡ç¨‹ä¸­å¼€å§‹å‡é€Ÿ
+    //             if(totalAcceleration <= 0)//ÔÚ»ØÈ¥µÄ¹ý³Ì???¿ªÊ¼¼õ???
     //             {
     //                 stage = 3;
     //             }
