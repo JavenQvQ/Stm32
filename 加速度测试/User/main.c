@@ -205,14 +205,14 @@ void TASK2(void)//计算位移
             }
         }
     }
-    X=(X2*0.9-X1)*500;
+    X=-X1*1000;
     if(X<4.5)
     {
         if(Gz_Press_Fre>120)
         {
             speech_text("按压频率过快而且按压太轻",GB2312);
         }
-        else if(Gz_Press_Fre<100)
+        else if(Gz_Press_Fre<90)
         {
             speech_text("按压频率太慢而且按压太轻",GB2312);
         }
@@ -227,7 +227,7 @@ void TASK2(void)//计算位移
         {
             speech_text("按压频率过快而且按压太重",GB2312);
         }
-        else if(Gz_Press_Fre<100)
+        else if(Gz_Press_Fre<90)
         {
             speech_text("按压频率太慢而且按压太重",GB2312);
         }
@@ -254,7 +254,7 @@ int main(void)
 {        
 	/*模块初???化*/
     I2C_Bus_Init();
-    SetVolume(10);
+    SetVolume(7);
 	SetReader(Reader_XiaoPing);
 	TIM2_Init();	//定时器初始化
     ADXL355();
@@ -276,8 +276,8 @@ int main(void)
 		}
 
 
-        // speech_text("你好",GB2312);
-        // Delay_ms(3000); 
+        //  speech_text("病人生命垂危，请立刻就医",GB2312);
+        //  Delay_ms(8000); 
     
 	}
 }

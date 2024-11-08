@@ -53,7 +53,7 @@ void IC_Init()
   */
 uint16_t IC_GetFrequency()
 {
-    return 18000000/tmp16_CH1;//计算频率,8M为时钟频率
+    return 18000000/tmp16_CH1;//计算频率,18M为时钟频率
 }
 
 void TIM3_IRQHandler(void)                        //定时器中断
