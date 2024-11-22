@@ -206,39 +206,31 @@ void TASK2(void)//计算位移
         }
     }
     X=-X1*1000;
-    if(X<4.5)
+    // 判断按压深度
+    if (X > 5.5)
     {
-        if(Gz_Press_Fre>120)
-        {
-            speech_text("按压频率过快而且按压太轻",GB2312);
-        }
-        else if(Gz_Press_Fre<90)
-        {
-            speech_text("按压频率太慢而且按压太轻",GB2312);
-        }
-        else
-        {
-            speech_text("按压太轻",GB2312);
-        }
+        speech_text("按压太重", GB2312);
     }
-    if(X>5.5)
+    else if (X < 4.5)
     {
-        if(Gz_Press_Fre>120)
-        {
-            speech_text("按压频率过快而且按压太重",GB2312);
-        }
-        else if(Gz_Press_Fre<90)
-        {
-            speech_text("按压频率太慢而且按压太重",GB2312);
-        }
-        else
-        {
-            speech_text("按压太重",GB2312);
-        }
+        speech_text("按压太轻", GB2312);
     }
 
-    printf("X=%f\nGz_Press_Fre:%f\ncount:%d\n",X,Gz_Press_Fre,count);
-    X=0;
+    // 判断按压频率
+    if (Gz_Press_Fre > 120)
+    {
+        speech_text("按压频率过快", GB2312);
+    }
+    else if (Gz_Press_Fre < 90)
+    {
+        speech_text("按压频率太慢", GB2312);
+    }
+
+    printf("X=%f\nGz_Press_Fre=%f\ncount=%d\n", X, Gz_Press_Fre, count);
+    X = 0;
+
+
+
 
 }
 
@@ -256,10 +248,12 @@ int main(void)
     I2C_Bus_Init();
     SetVolume(7);
 	SetReader(Reader_XiaoPing);
+    SetSpeed(10);
 	TIM2_Init();	//定时器初始化
     ADXL355();
 	Serial2_Init();
     ADXL355_Startup();
+
 	while (1)
 	{
         if(Gz_Press_Flag == 1)

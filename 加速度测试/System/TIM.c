@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 
-
+//频率为72M/720/100=1KHz
 void TIM2_Init(void)
 {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
