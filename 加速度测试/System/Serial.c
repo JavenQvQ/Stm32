@@ -53,7 +53,7 @@ void Serial_Init(void)
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;		//选择配置NVIC的USART1线
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//指定NVIC线路使能
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;		//指定NVIC线路的抢占优先级为1
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;		//指定NVIC线路的响应优先级为1
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;		//指定NVIC线路的响应优先级为1
 	NVIC_Init(&NVIC_InitStructure);							//将结构体变量交给NVIC_Init，配置NVIC外设
 	
 	/*USART使能*/
@@ -244,9 +244,21 @@ void Serial2_Init()
     USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx; // 使能接收和发送
     USART_Init(USART2, &USART_InitStructure);
 
-    // 4. 使能 USART2
+    // 4. 配置 USART2 中断
+    USART_ITConfig(USART2, USART_IT_RXNE, ENABLE); // 使能接收中断
+
+    // 5. 配置 NVIC
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn; // 选择 USART2 中断通道
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1; // 抢占优先级
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1; // 响应优先级
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; // 使能中断通道
+    NVIC_Init(&NVIC_InitStructure);
+
+    // 6. 使能 USART2
     USART_Cmd(USART2, ENABLE);
 }
+
 
 void Serial2_SendByte(uint8_t Byte)
 {
@@ -260,5 +272,4 @@ int fputc(int ch, FILE *f)
 	Serial2_SendByte(ch);			//将printf的底层重定向到自己的发送字节函数
 	return ch;
 }
-
 

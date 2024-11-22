@@ -8,6 +8,7 @@
 #include "arm_math.h"
 #include "ADXL355.h"
 #include "MySPI.h"
+#include "DHT11.h"
 
 #define Task1_ID 1//任务1的ID
 
@@ -26,14 +27,9 @@ uint16_t Gz_Press_Index1 = 0;//用于加速度数据存储的索???
 uint8_t Gz_Press_Flag = 0;//用于加速度数据存储的标志位
 float Gz_Press_Fre = 0;//用于加速度数据存储的???率
 
-
-
-#define USERNAME   "mqtt_stm32&k1pc8KDkdWX" //用户名
-#define PASSWORD   "f3f17f624a5f4d78f8bae2dc2ed1e02388edf9da8f7387900dfb9f15bb335a63" //密码
-#define CLIENTID   "k1pc8KDkdWX.mqtt_stm32|securemode=2\\,signmethod=hmacsha256\\,timestamp=1725448975997|" //设备名称
-#define PRODUCTID  "k1pc8KDkdWX" //产品ID
-#define DOMAINNAME PRODUCTID"iot-06z00dt2zbxttjh.mqtt.iothub.aliyuncs.com" //域名
-#define DEVICENAME "mqtt_stm32"
+DHT11_Data_TypeDef DHT11_Data;//定义温湿度
+uint16_t USART_RX_STA = 0;
+uint8_t USART_RX_BUF[200];
 
 void HMI_send_string(char* name, char* showdata)
 {
@@ -58,7 +54,7 @@ void HMI_Wave_Fast(char* name, int ch, int count, int* show_data)
 {
     int i;
     printf("addt %s,%d,%d\xff\xff\xff", name, ch, count);
-    delay_ms(100);
+    Delay_ms(100);
     for (i = 0; i < count; i++)
         printf("%c", show_data[i]);
     printf("\xff\xff\xff");
@@ -279,7 +275,44 @@ void TASK2(void)//计算位移
 }
 
 
+void TASK3(void)
+{    
+    uint16_t len;
+        len = USART_RX_STA & 0x3FFF; // 得到此次接收到的数据长度
 
+        if (USART_RX_BUF[0] == 0xFD && USART_RX_BUF[1] == 0xFF && USART_RX_BUF[2] == 0xFF && USART_RX_BUF[3] == 0xFF)
+        {
+            memset(USART_RX_BUF, 0, 200); // 清空缓存区
+            Serial_SendString("OKK");
+        }
+        else if (USART_RX_BUF[0] == '1') // 0x31传温度、湿度、大气压、体温
+        {
+            HMI_send_number("n0.val", DHT11_Data.temp_int);
+            HMI_send_number("n1.val", DHT11_Data.humi_int);
+            HMI_send_number("n2.val", 1000);
+            HMI_send_number("n3.val", 37);
+        }
+        else if (USART_RX_BUF[0] == '2') // 0x32
+        {
+            //HMI_send_float("x0.val", test_float);
+        }
+        else if (USART_RX_BUF[0] == '3') // 0x33传按压频率和深度
+        {
+            HMI_send_number("n10.val", 110);
+            HMI_send_number("n12.val", 5);
+        }
+        else if (USART_RX_BUF[0] == '4') // 0x34传心电、血氧、脉搏
+        {
+            int sin_data[255];
+            for (int i = 0; i < 255; i++)
+            {
+                sin_data[i] = (int)((sin((i + 1) * 3.14 / 50) + 1) * 90);
+                HMI_Wave("s0.id", 0, sin_data[i]);
+            }
+            HMI_send_number("n6.val", 72);
+            HMI_send_number("n7.val", 95);
+        }
+}
 
 
 /** 
@@ -289,7 +322,8 @@ void TASK2(void)//计算位移
 **/
 int main(void)
 {        
-	/*模块初???化*/
+
+    /*模块初???化*/
     I2C_Bus_Init();
     SetVolume(7);
 	SetReader(Reader_XiaoPing);
@@ -298,6 +332,7 @@ int main(void)
     ADXL355();
 	Serial2_Init();
     ADXL355_Startup();
+    DHT11_GPIO_Config();//温度湿度传感器初始化
 
 	while (1)
 	{
@@ -313,6 +348,11 @@ int main(void)
 			TASK1();
 			GetDate_Flag = 0;
 		}
+        if (USART_RX_STA & 0x8000)
+        {
+            TASK3();
+            USART_RX_STA = 0; // 重置状态标志
+        }
 
 
         //  speech_text("病人生命垂危，请立刻就医",GB2312);
@@ -335,52 +375,37 @@ void TIM2_IRQHandler(void)
 
 }
 
-	// switch(stage)
-    // {
-    //     case 0:
-    //             if(totalAcceleration <= 0) 
-    //             {
-    //                 count++;
-    //                 V=V+totalAcceleration;
-    //             } 
-    //             else 
-    //             {
-    //                 count = 0;
-    //                 V=0;
-    //             }
-    //             if(count >= 40) 
-    //             {
-    //                 V = V * 0.01; // 计算速度
-    //                 stage = 1;//进入1阶???
-    //                 count = 0;//清零
-    //             }
-    //             break;
-    //     case 1:
-    //             V += totalAcceleration*0.01;
-    //             if(V >= 0)//速度???0,到达原来点且加速度大于0.25开始准备返???
-    //             {
-    //                 if(totalAcceleration > 0)
-    //                 {
-    //                     V = 0;
-    //                     stage = 2;
-    //                 }
-    //                 else
-    //                 {
-    //                     V = 0;
-    //                     stage = 0;
-    //                 }
+void USART2_IRQHandler(void)
+{
+    uint8_t data;
+    int i;
 
-    //             }
-    //             break;
-    //     case 2:
-    //             V += totalAcceleration*0.01;
-    //             if(totalAcceleration <= 0)//在回去的过程???开始减???
-    //             {
-    //                 stage = 3;
-    //             }
-    //             break;
-    //     case 3:
-    //             V += totalAcceleration*0.01;
-                
-    // }
-    // //printf("%f\n",totalAcceleration);
+    if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)
+    {
+        data = USART_ReceiveData(USART2);
+
+        if ((USART_RX_STA & 0x8000) == 0)
+        {
+            if (USART_RX_STA & 0x4000)
+            {
+                if (data != 0x0A)  // 如果不是换行符，则接收错误，重新开始
+                    USART_RX_STA = 0;
+                else
+                    USART_RX_STA |= 0x8000;  // 接收完成
+            }
+            else
+            {
+                if (data == 0x0D)  // 判断是否为回车符
+                    USART_RX_STA |= 0x4000;
+                else
+                {
+                    USART_RX_BUF[USART_RX_STA & 0x3FFF] = data;
+                    USART_RX_STA++;
+                    if (USART_RX_STA > (200 - 1))  // 防止缓存区溢出
+                        USART_RX_STA = 0;
+                }
+            }
+        }
+        USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+    }
+}
