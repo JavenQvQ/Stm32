@@ -261,6 +261,12 @@
           },
           {
             "path": "../Hardware/ADXL355.h"
+          },
+          {
+            "path": "../Hardware/DHT11.c"
+          },
+          {
+            "path": "../Hardware/DHT11.h"
           }
         ],
         "folders": []
