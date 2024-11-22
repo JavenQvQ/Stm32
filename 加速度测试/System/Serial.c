@@ -236,7 +236,7 @@ void Serial2_Init()
 
     // 3. 配置 USART2 参数
     USART_InitTypeDef USART_InitStructure;
-    USART_InitStructure.USART_BaudRate = 115200; // 波特率
+    USART_InitStructure.USART_BaudRate = 9600; // 波特率
     USART_InitStructure.USART_WordLength = USART_WordLength_8b; // 8位数据
     USART_InitStructure.USART_StopBits = USART_StopBits_1; // 1个停止位
     USART_InitStructure.USART_Parity = USART_Parity_No; // 无奇偶校验

@@ -26,6 +26,51 @@ uint16_t Gz_Press_Index1 = 0;//用于加速度数据存储的索???
 uint8_t Gz_Press_Flag = 0;//用于加速度数据存储的标志位
 float Gz_Press_Fre = 0;//用于加速度数据存储的???率
 
+
+
+#define USERNAME   "mqtt_stm32&k1pc8KDkdWX" //用户名
+#define PASSWORD   "f3f17f624a5f4d78f8bae2dc2ed1e02388edf9da8f7387900dfb9f15bb335a63" //密码
+#define CLIENTID   "k1pc8KDkdWX.mqtt_stm32|securemode=2\\,signmethod=hmacsha256\\,timestamp=1725448975997|" //设备名称
+#define PRODUCTID  "k1pc8KDkdWX" //产品ID
+#define DOMAINNAME PRODUCTID"iot-06z00dt2zbxttjh.mqtt.iothub.aliyuncs.com" //域名
+#define DEVICENAME "mqtt_stm32"
+
+void HMI_send_string(char* name, char* showdata)
+{
+    // printf("t0.txt=\"%d\"\xff\xff\xff", num);
+    printf("%s=\"%s\"\xff\xff\xff", name, showdata);
+}
+void HMI_send_number(char* name, int num)
+{
+    // printf("t0.txt=\"%d\"\xff\xff\xff", num);
+    printf("%s=%d\xff\xff\xff", name, num);
+}
+void HMI_send_float(char* name, float num)
+{
+    // printf("t0.txt=\"%d\"\xff\xff\xff", num);
+    printf("%s=%d\xff\xff\xff", name, (int)(num * 100));
+}
+void HMI_Wave(char* name, int ch, int val)
+{
+    printf("add %s,%d,%d\xff\xff\xff", name, ch, val);
+}
+void HMI_Wave_Fast(char* name, int ch, int count, int* show_data)
+{
+    int i;
+    printf("addt %s,%d,%d\xff\xff\xff", name, ch, count);
+    delay_ms(100);
+    for (i = 0; i < count; i++)
+        printf("%c", show_data[i]);
+    printf("\xff\xff\xff");
+}
+void HMI_Wave_Clear(char* name, int ch)
+{
+    printf("cle %s,%d\xff\xff\xff", name, ch);
+}
+
+
+
+
 ADXL355_HandleTypeDef ADXL355_t;
 void ADXL355(void)
 {
@@ -226,13 +271,13 @@ void TASK2(void)//计算位移
         speech_text("按压频率太慢", GB2312);
     }
 
-    printf("X=%f\nGz_Press_Fre=%f\ncount=%d\n", X, Gz_Press_Fre, count);
+    //printf("X=%f\nGz_Press_Fre=%f\ncount=%d\n", X, Gz_Press_Fre, count);
+    HMI_send_number("n10.val", Gz_Press_Fre);
+	HMI_send_number("n12.val", X);
     X = 0;
 
-
-
-
 }
+
 
 
 
