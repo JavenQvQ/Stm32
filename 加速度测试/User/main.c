@@ -272,8 +272,8 @@ void TASK2(void)//º∆À„Œª“∆
     }
 
     //printf("X=%f\nGz_Press_Fre=%f\ncount=%d\n", X, Gz_Press_Fre, count);
-    HMI_send_number("n10.val", Gz_Press_Fre);
-	HMI_send_number("n12.val", X);
+    HMI_send_number("n10.val", (int)Gz_Press_Fre);
+	HMI_send_number("n12.val", (int)X);
     X = 0;
 
 }
