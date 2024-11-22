@@ -1,9 +1,9 @@
 #ifndef _DHT11_H
 #define __DHT11_H
 
-#define DHT11_Out_Pin		GPIO_Pin_0
-#define DHT11_Out_RCC		RCC_APB2Periph_GPIOA
-#define DHT11		GPIOA
+#define DHT11_Out_Pin		GPIO_Pin_11
+#define DHT11_Out_RCC		RCC_APB2Periph_GPIOB
+#define DHT11		GPIOB
 
 #define HIGH  1
 #define LOW   0

@@ -45,7 +45,7 @@ static uint8_t Read_Byte(void)
 	{	 
 		while (DHT11_DATA_IN() == Bit_RESET);
 
-		delay_us(40);    	  
+		Delay_us(40);    	  
 
 		if (DHT11_DATA_IN() == Bit_SET)
 		{
@@ -65,11 +65,11 @@ uint8_t Read_DHT11(DHT11_Data_TypeDef *DHT11_Data)
 {  
 	DHT11_Mode_Out_PP();
 	DHT11_DATA_OUT(LOW);
-	delay_ms(18);
+	Delay_ms(18);
 
 	DHT11_DATA_OUT(HIGH); 
 
-	delay_us(30);  
+	Delay_us(30);  
 
 	DHT11_Mode_IPU();
 
