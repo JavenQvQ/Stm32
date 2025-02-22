@@ -9,6 +9,7 @@
 #include "ADXL355.h"
 #include "MySPI.h"
 #include "DHT11.h"
+#include "esp8266.h"
 
 #define Task1_ID 1//任务1的ID
 
@@ -22,10 +23,10 @@ float X = 0;
 float X1 = 0;
 float X2 = 0;
 float Gz_Press[512];
-uint16_t Gz_Press_Index = 0;//用于加速度数据存储的索???
-uint16_t Gz_Press_Index1 = 0;//用于加速度数据存储的索???
+uint16_t Gz_Press_Index = 0;//用于加速度数据存储的索引
+uint16_t Gz_Press_Index1 = 0;//用于加速度数据存储的索引
 uint8_t Gz_Press_Flag = 0;//用于加速度数据存储的标志位
-float Gz_Press_Fre = 0;//用于加速度数据存储的???率
+float Gz_Press_Fre = 0;//用于加速度数据存储的标志位
 
 DHT11_Data_TypeDef DHT11_Data;//定义温湿度
 uint16_t USART_RX_STA = 0;
@@ -322,8 +323,7 @@ void TASK2(void)//计算位移
 
 void TASK3(void)
 {    
-    uint16_t len;
-        len = USART_RX_STA & 0x3FFF; // 得到此次接收到的数据长度
+
 
         if (USART_RX_BUF[0] == 0xFD && USART_RX_BUF[1] == 0xFF && USART_RX_BUF[2] == 0xFF && USART_RX_BUF[3] == 0xFF)
         {
@@ -376,7 +376,7 @@ int main(void)
 
     /*模块初???化*/
     I2C_Bus_Init();
-    SetVolume(7);
+    SetVolume(10);
 	SetReader(Reader_XiaoPing);
     SetSpeed(10);
 	TIM2_Init();	//定时器初始化
@@ -384,6 +384,8 @@ int main(void)
 	Serial2_Init();
     ADXL355_Startup();
     DHT11_GPIO_Config();//温度湿度传感器初始化
+
+    
 	while (1)
 	{
         if(Gz_Press_Flag == 1)

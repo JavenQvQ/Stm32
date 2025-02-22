@@ -13,4 +13,5 @@
 #define DOMAINNAME PRODUCTID"iot-06z00dt2zbxttjh.mqtt.iothub.aliyuncs.com" //域名
 #define DEVICENAME "mqtt_stm32"
 
+void esp8266_init(void);
 #endif
