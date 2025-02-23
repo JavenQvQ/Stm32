@@ -34,7 +34,7 @@ void Serial_Init(void)
 	
 	/*USART初始化*/
 	USART_InitTypeDef USART_InitStructure;					//定义结构体变量
-	USART_InitStructure.USART_BaudRate = 9600;				//波特率
+	USART_InitStructure.USART_BaudRate = 115200;				//波特率
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;	//硬件流控制，不需要
 	USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;	//模式，发送模式和接收模式均选择
 	USART_InitStructure.USART_Parity = USART_Parity_No;		//奇偶校验，不需要
@@ -52,8 +52,8 @@ void Serial_Init(void)
 	NVIC_InitTypeDef NVIC_InitStructure;					//定义结构体变量
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;		//选择配置NVIC的USART1线
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//指定NVIC线路使能
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;		//指定NVIC线路的抢占优先级为1
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;		//指定NVIC线路的响应优先级为1
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;		//指定NVIC线路的抢占优先级为1
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;		//指定NVIC线路的响应优先级为1
 	NVIC_Init(&NVIC_InitStructure);							//将结构体变量交给NVIC_Init，配置NVIC外设
 	
 	/*USART使能*/
@@ -269,7 +269,7 @@ void Serial2_SendByte(uint8_t Byte)
 
 int fputc(int ch, FILE *f)
 {
-	Serial2_SendByte(ch);			//将printf的底层重定向到自己的发送字节函数
+	Serial_SendByte(ch);			//将printf的底层重定向到自己的发送字节函数
 	return ch;
 }
 

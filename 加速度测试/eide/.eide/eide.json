@@ -267,9 +267,34 @@
           },
           {
             "path": "../Hardware/DHT11.h"
+          },
+          {
+            "path": "../Hardware/esp8266.c"
+          },
+          {
+            "path": "../Hardware/esp8266.h"
           }
         ],
-        "folders": []
+        "folders": [
+          {
+            "name": "ADX922",
+            "files": [
+              {
+                "path": "../Hardware/ADX922/ADX922.c"
+              },
+              {
+                "path": "../Hardware/ADX922/ADX922.h"
+              },
+              {
+                "path": "../Hardware/ADX922/spi.c"
+              },
+              {
+                "path": "../Hardware/ADX922/spi.h"
+              }
+            ],
+            "folders": []
+          }
+        ]
       },
       {
         "name": "User",
@@ -421,7 +446,7 @@
       "uploadConfig": {
         "bin": "",
         "target": "stm32f1x",
-        "interface": "stlink-v2",
+        "interface": "stlink-v2-1",
         "baseAddr": "0x08000000"
       },
       "uploadConfigMap": {
@@ -446,7 +471,8 @@
           "../Hardware",
           ".cmsis/include",
           "../RTE/_Target 1",
-          "../User"
+          "../User",
+          "../Hardware/ADX922"
         ],
         "libList": [
           "../User"
