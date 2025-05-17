@@ -38,8 +38,8 @@ void GPIO_EXTInterrupt_Configuration(void)
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
 
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;// 
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;// …œ¿≠ ‰»Î
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
