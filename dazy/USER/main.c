@@ -138,7 +138,7 @@ void EXTI9_5_IRQHandler(void)
   {
     EXTI_ClearITPendingBit(EXTI_Line8);
     // 原EXTI3_IRQHandler中的代码...
-    for (j = 0; j < 9; j++)		// 连续读取9个数据
+    for (j = 0; j < 9; j++)		// 一次读取9个字节。其中前3个字节包含了电极状态，后面3+3个字节分别表示两个通道的数据
 	{
 		read_data[j] = SPI3_ReadWriteByte(0xFF);
 	}

@@ -172,7 +172,7 @@ void ADX922_PowerOnInit(void)
   delay_us(10);
   ADX922_Write_Reg(WREG | CH2SET,   	0X00); 	// 增益6，连接到电极
   delay_us(10);
-  ADX922_Write_Reg(WREG | RLD_SENS, 	0x2F);
+  ADX922_Write_Reg(WREG | RLD_SENS, 	0x2F);// 选择右腿驱动增益
   delay_us(10);
   ADX922_Write_Reg(WREG | LOFF_SENS,	0x40);
   delay_us(10);
