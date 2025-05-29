@@ -48,19 +48,15 @@ OS_TCB DISPTaskTCB;               // 任务控制块
 CPU_STK DISP_TASK_STK[DISP_STK_SIZE]; // 任务堆栈
 void disp_task(void *p_arg);      // 任务函数声明
 
-// 波形显示参数
-#define WAVE_BUFFER_SIZE 160      // 波形缓冲区大小，等于LCD宽度
-#define WAVE_Y_OFFSET    50       // 波形在Y轴上的起始位置
-#define WAVE_HEIGHT      100      // 波形显示高度
-#define WAVE_BASELINE    (WAVE_Y_OFFSET + WAVE_HEIGHT/2) // 波形基线
+// 添加到main.c文件开头或适当的头文件中
+#define WAVE_BASELINE 128    // 波形基线位置（屏幕Y坐标）
+#define WAVE_Y_OFFSET 20    // 波形上边界偏移量
 
 // 用于存储波形数据的环形缓冲区
-u32 wave_buffer[WAVE_BUFFER_SIZE];
-u8 buffer_index = 0;
+float32_t ecg_queue_buffer[32]; // 足够大的缓冲区用于队列
 
 // 用于传递ECG数据的邮箱
 OS_Q ECGDataQ;
-
 
 
 
@@ -342,170 +338,177 @@ void start_task(void *p_arg)
 }
 
 
+// 2. 修改ecg_task函数，只处理ch2_data
 void ecg_task(void *p_arg)
 {
-    arm_fir_instance_f32 S1;
-	arm_fir_instance_f32 S2;
+    arm_fir_instance_f32 S2;  // 只保留S2滤波器
     OS_ERR err;
-	
-	u32 p_num=0;	  	// 用于刷新最大值和最小值
-	u32 min[2]={0xFFFFFFFF,0xFFFFFFFF};
-	u32 max[2]={0,0};
-	u32 Peak;					// 峰峰值
-	u32 BPM_LH[3];		// 用于判断波峰
-	float BPM;				// 心率
-	
-	flog=0;
-	
-	// 初始化结构体S1
-	arm_fir_init_f32(&S1, NumTaps, (float32_t *)LPF_2Hz, firState1, blockSize);
-	// 初始化结构体S2
-	arm_fir_init_f32(&S2, NumTaps, (float32_t *)BPF_5Hz_40Hz, firState2, blockSize);
-	
-	CS_L;
-	delay_us(10);
-    SPI3_ReadWriteByte(RDATAC);		// 发送启动连续读取数据命令
+    
+    u32 p_num=0;     // 用于刷新最大值和最小值
+    u32 min[2]={0xFFFFFFFF,0xFFFFFFFF};
+    u32 max[2]={0,0};
+    u32 Peak;         // 峰峰值
+    u32 BPM_LH[3];    // 用于判断波峰
+    float BPM;        // 心率
+    
+    flog=0;
+    
+    // 只初始化S2滤波器
+    arm_fir_init_f32(&S2, NumTaps, (float32_t *)BPF_5Hz_40Hz, firState2, blockSize);
+    
+    CS_L;
     delay_us(10);
-	CS_H;						
-    START_H; 				// 启动转换
-	CS_L;
-     while (1)
-    {	
+    SPI3_ReadWriteByte(RDATAC);  // 发送启动连续读取数据命令
+    delay_us(10);
+    CS_H;                      
+    START_H;             // 启动转换
+    CS_L;
+    
+    while (1)
+    {   
         // 等待信号量，表示有新数据可用
         OSSemPend(&ECGDataSem, 
                  0,             // 无限期等待
                  OS_OPT_PEND_BLOCKING,
                  NULL,          // 不获取时间戳
                  &err);
-
-		Input_data1=(float32_t)(ch1_data^0x800000);
-		// 实现FIR滤波
-		arm_fir_f32(&S1, &Input_data1, &Output_data1, blockSize);
-		Input_data2=(float32_t)(ch2_data^0x800000);
-		// 实现FIR滤波
-		arm_fir_f32(&S2, &Input_data2, &Output_data2, blockSize);
-		// 比较大小
-		if(min[1]>Output_data2)
-			min[1]=Output_data2;
-		if(max[1]<Output_data2)
-			max[1]=Output_data2;
-			
-		BPM_LH[0]=BPM_LH[1];
-		BPM_LH[1]=BPM_LH[2];
-		BPM_LH[2]=Output_data2;
-		if((BPM_LH[0]<BPM_LH[1])&(BPM_LH[1]>max[0]-Peak/3)&(BPM_LH[2]<BPM_LH[1]))
-		{
-			BPM=(float)60000.0/(point_cnt*4);
-			point_cnt=0;
-		}
-			
-		// 每隔2000个点重新测量一次最大最小值
-		p_num++;
-		if(p_num>2000)
-		{
-			min[0]=min[1];			
-			max[0]=max[1];
-			min[1]=0xFFFFFFFF;
-			max[1]=0;
-			Peak=max[0]-min[0];
-			p_num=0;
-		}
-		// 数据：呼吸波、心电信号、心率
-		//printf("B: %8d",(u32)Output_data1);
-		printf("A: %8d\n",((u32)Output_data2));
-		//printf("C: %6.2f",(BPM));
-        // 发送数据到显示任务，用于波形显示
-        //OSQPost(&ECGDataQ, (void*)&Output_data2, sizeof(Output_data2), OS_OPT_POST_FIFO, &err);
-
-     }
+                 
+        // 移除ch1_data处理代码
+        // 只处理ch2_data
+        Input_data2=(float32_t)(ch2_data^0x800000);
+        // 实现FIR滤波
+        arm_fir_f32(&S2, &Input_data2, &Output_data2, blockSize);
+        
+        // 比较大小
+        if(min[1]>Output_data2)
+            min[1]=Output_data2;
+        if(max[1]<Output_data2)
+            max[1]=Output_data2;
+            
+        BPM_LH[1]=BPM_LH[2];
+        BPM_LH[2]=Output_data2;
+        if((BPM_LH[0]<BPM_LH[1])&(BPM_LH[1]>max[0]-Peak/3)&(BPM_LH[2]<BPM_LH[1]))
+        {
+            BPM=(float)60000.0/(point_cnt*4);
+            point_cnt=0;
+        }
+            
+        // 每隔2000个点重新测量一次最大最小值
+        p_num++;
+        if(p_num>2000)
+        {
+            min[0]=min[1];          
+            max[0]=max[1];
+            min[1]=0xFFFFFFFF;
+            max[1]=0;
+            Peak=max[0]-min[0];
+            p_num=0;
+        }
+        
+        // 输出处理后的数据
+        printf("%d\n",((u32)Output_data2));
+        
+if(p_num % 2 == 0) {
+    static u8 buf_index = 0;
+    buf_index = (buf_index + 1) % 32;
+    ecg_queue_buffer[buf_index] = Output_data2;
+    OSQPost(&ECGDataQ, (void*)&ecg_queue_buffer[buf_index], sizeof(float32_t), OS_OPT_POST_FIFO, &err);
+} 
 }
+    }
 
 
 
-// 在ecg_task函数后添加
 
 void disp_task(void *p_arg)
 {
     OS_ERR err;
     float32_t ecg_data;
-    u8 i, old_index;
-    u16 y_pos, old_y_pos;
-    u32 ecg_baseline = 15000;  // ECG数据基线值，根据实际调整
-    u32 scale_factor = 100;   // 降低缩放因子，使波形更明显
+    OS_MSG_SIZE msg_size;
+    
+    // 波形绘制相关变量
+    static u16 draw_x = 0;          // 当前绘制的X坐标
+    static u16 last_y = 96;         // 上一个点的Y坐标（基线位置：64+64/2=96）
+    u16 current_y;                  // 当前点的Y坐标
+    u8 str[20];                     // 字符串缓冲区
+    static u32 point_count = 0;     // 点计数器
+    
+    // 修改波形显示参数以适应指定区域
+    #define WAVE_START_X 0          // 波形起始X坐标
+    #define WAVE_END_X 160          // 波形结束X坐标
+    #define WAVE_START_Y 64         // 波形起始Y坐标
+    #define WAVE_END_Y 128          // 波形结束Y坐标
+    #define WAVE_HEIGHT 64          // 波形显示高度 (128-64=64)
+    #define WAVE_BASELINE 96        // 波形基线位置 (64+32=96)
+    
+    // 针对ECG数据范围100000-200000调整参数
+    #define ECG_DATA_CENTER 140000  // ECG数据中心值
+    #define ECG_DATA_SCALE 0.0018f  // 缩放因子：(ECG_range/2) / (WAVE_HEIGHT/2) = 50000/32 ≈ 0.0006
     
     // 初始化显示区域
     LCD_Fill(0, 0, LCD_W, LCD_H, WHITE);
     
-    // 绘制坐标轴和网格
-    LCD_DrawLine(0, WAVE_BASELINE, LCD_W, WAVE_BASELINE, LIGHTBLUE); // 中心基准线
+    // 显示标题和基本信息
+    LCD_ShowString(2, 5, "ECG Monitor", RED, WHITE, 12, 0);
+    LCD_ShowString(2, 20, "Heart Rate: ", BLUE, WHITE, 12, 0);
     
-    // 显示标题
-    LCD_ShowString(20, 10, "ECG Waveform", BLACK, WHITE, 16, 0);
-    
-    // 初始化波形缓冲区
-    for(i = 0; i < WAVE_BUFFER_SIZE; i++) {
-        wave_buffer[i] = WAVE_BASELINE;
-    }
-    
-    buffer_index = 0;
-    
-    while(1) {
-        // 等待心电数据
-        void *msg;
-        OS_MSG_SIZE msg_size;
-        
-        // 从邮箱获取数据，无限期等待
-        msg = OSQPend(&ECGDataQ, 0, OS_OPT_PEND_BLOCKING, &msg_size, NULL, &err);
+    // 绘制波形区域边框（可选）
+    LCD_DrawRectangle(WAVE_START_X, WAVE_START_Y, WAVE_END_X-1, WAVE_END_Y-1, BLACK);
+
+    // 主循环 - 接收并显示数据
+    while (1)
+    {
+        // 等待队列中的数据 (最多等待100ms)
+        void *msg_ptr = OSQPend(&ECGDataQ,
+                              100,
+                              OS_OPT_PEND_BLOCKING,
+                              &msg_size,
+                              NULL,
+                              &err);
         
         if(err == OS_ERR_NONE) {
-            // 获取数据
-            ecg_data = *(float32_t*)msg;
+            // 成功接收到数据
+            ecg_data = *(float32_t*)msg_ptr;
             
-            // 保存旧索引，用于擦除旧点
-            old_index = buffer_index;
+            // 将ECG数据转换为屏幕Y坐标
+            s16 offset = (s16)((ecg_data - ECG_DATA_CENTER) * ECG_DATA_SCALE);
+            current_y = WAVE_BASELINE - offset;
             
-            // 保存旧的Y位置
-            old_y_pos = wave_buffer[buffer_index];
+            // 限制Y坐标范围在指定区域内
+            if(current_y < WAVE_START_Y) current_y = WAVE_START_Y;
+            if(current_y > WAVE_END_Y-1) current_y = WAVE_END_Y-1;
             
-            // 计算新的Y位置 - 考虑数据基线和合适的缩放
-            // 如果数据增大，Y坐标应该减小(因为屏幕Y轴向下)
-            int32_t offset = (ecg_data - ecg_baseline) / scale_factor;
-            y_pos = WAVE_BASELINE - offset;
-            
-            // 限制在显示区域内
-            if(y_pos < WAVE_Y_OFFSET) y_pos = WAVE_Y_OFFSET;
-            if(y_pos > WAVE_Y_OFFSET + WAVE_HEIGHT) y_pos = WAVE_Y_OFFSET + WAVE_HEIGHT;
-            
-            // 存储新位置
-            wave_buffer[buffer_index] = y_pos;
-            
-            // 使用"擦-写"方式更新波形，避免混乱
-            // 清除前一幅波形
-            if(buffer_index == 0) {
-                LCD_Fill(0, WAVE_Y_OFFSET, LCD_W, WAVE_Y_OFFSET + WAVE_HEIGHT, WHITE);
-                LCD_DrawLine(0, WAVE_BASELINE, LCD_W, WAVE_BASELINE, LIGHTBLUE); // 重绘基准线
+            // 优化显示：清除当前列的前面几列（实现滚动效果）
+            u16 clear_x = (draw_x + 3) % WAVE_END_X;  // 提前清除3列
+            if(clear_x < WAVE_END_X) {
+                // 只清除波形区域内的一列
+                LCD_Fill(clear_x, WAVE_START_Y+1, clear_x+1, WAVE_END_Y-1, WHITE);
             }
             
-            // 绘制新位置的点
-            LCD_DrawPoint(buffer_index, y_pos, RED);
-            
-            // 如果不是第一个点，绘制连线
-            if(buffer_index > 0) {
-                LCD_DrawLine(buffer_index-1, wave_buffer[buffer_index-1], 
-                             buffer_index, y_pos, RED);
+            // 绘制波形线条
+            if(draw_x > WAVE_START_X) {
+                LCD_DrawLine(draw_x-1, last_y, draw_x, current_y, RED);
+            } else {
+                // 第一个点，只画点
+                LCD_DrawPoint(draw_x, current_y, RED);
             }
             
-            // 更新索引
-            buffer_index = (buffer_index + 1) % WAVE_BUFFER_SIZE;
+            // 更新坐标
+            last_y = current_y;
+            draw_x++;
+            point_count++;
             
-            // 每WAVE_BUFFER_SIZE个数据点更新一次显示
-            if(buffer_index == 0) {
-                char str[20];
-                LCD_ShowString(20, 30, str, BLACK, WHITE, 16, 0);
-                
-                // 显示当前数据值以便调试
-                LCD_ShowString(80, 30, str, BLACK, WHITE, 16, 0);
+            // 如果到达波形区域右边界，重新开始（无需全局刷新）
+            if(draw_x >= WAVE_END_X) {
+                draw_x = WAVE_START_X;
+                last_y = WAVE_BASELINE;  // 重置到基线
             }
+        }
+        
+        // 更新心率显示 (每20个点更新一次，减少频率)
+        if(point_count % 20 == 0) {
+            sprintf((char*)str, "BPM: ---");  
+            LCD_ShowString(80, 20, str, BLUE, WHITE, 12, 0);
         }
     }
 }

@@ -22,6 +22,7 @@ void LCD_ShowIntNum(u16 x,u16 y,u16 num,u8 len,u16 fc,u16 bc,u8 sizey);//ÏÔÊ¾ÕûÊ
 void LCD_ShowFloatNum1(u16 x,u16 y,float num,u8 len,u16 fc,u16 bc,u8 sizey);//ÏÔÊ¾Á½Î»Ð¡Êý±äÁ¿
 
 void LCD_ShowPicture(u16 x,u16 y,u16 length,u16 width,const u8 pic[]);//ÏÔÊ¾Í¼Æ¬
+void LCD_DrawCurve(u16 x, u16 y);
 
 
 //»­±ÊÑÕÉ«
@@ -46,6 +47,15 @@ void LCD_ShowPicture(u16 x,u16 y,u16 length,u16 width,const u8 pic[]);//ÏÔÊ¾Í¼Æ¬
 #define LGRAY 			     0XC618 //Ç³»ÒÉ«(PANNEL),´°Ìå±³¾°É«
 #define LGRAYBLUE        0XA651 //Ç³»ÒÀ¶É«(ÖÐ¼ä²ãÑÕÉ«)
 #define LBBLUE           0X2B12 //Ç³×ØÀ¶É«(Ñ¡ÔñÌõÄ¿µÄ·´É«)
+//ÔÊÐí»æÖÆÇúÏßµÄÇøÓò
+#define LCD_DRAW_CURVE_X_MIN    0           //ÆÁÄ»XÖáµÄÆðÊ¼Öµ,
+#define LCD_DRAW_CURVE_y_MIN    128			//ÆÁÄ»YÖáµÄÆðÊ¼Öµ£¬
+ 
+#define LCD_DRAW_CURVE_X_MAX    160			//ÆÁÄ»XÖáµÄÖÕµãÖµ,
+#define LCD_DRAW_CURVE_y_MAX    100			//ÆÁÄ»YÖáµÄÖÕµãÖµ£¬
+// »­±ÊÑÕÉ«
+extern u16 POINT_COLOR; // »­±ÊÑÕÉ«
+extern u16 BACK_COLOR;  // ±³¾°É«
 
 #endif
 

@@ -49,7 +49,7 @@ void LCD_GPIO_Init(void)
   SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;   // 空闲时钟为低电平
   SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge; // 第一个边沿采样(上升沿)
   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;                      // NSS由软件控制
-  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // 预分频4，根据需要调整速度
+  SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2; // 预分频4，根据需要调整速度
   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;             // 高位先发
   SPI_InitStructure.SPI_CRCPolynomial = 7;                       // CRC多项式
   SPI_Init(SPI1, &SPI_InitStructure);

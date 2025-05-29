@@ -3,6 +3,11 @@
 #include "lcdfont.h"
 #include "delay.h"
 
+// 定义变量
+u16 POINT_COLOR = BLACK; // 画笔颜色默认为黑色
+u16 BACK_COLOR = WHITE;  // 背景色默认为白色
+ 
+
 
 /******************************************************************************
       函数说明：在指定区域填充颜色
@@ -556,3 +561,35 @@ void LCD_ShowPicture(u16 x,u16 y,u16 length,u16 width,const u8 pic[])
 }
 
 
+
+
+/**
+ * 函数说明：绘制ECG波形(横向显示)
+ * 入口数据：x_start - 起始X坐标
+ *           y_base - 基线Y坐标
+
+ * 返回值：无
+ */
+void LCD_DrawCurve(u16 x, u16 y)
+{
+    static u16 prev_x = 0;
+    static u16 prev_y = 0;
+    static u8 first_point = 1;
+    
+    if(first_point) {
+        // 第一个点只记录位置，不绘制线段
+        first_point = 0;
+    } else {
+        // 画线段从上一点到当前点
+        LCD_DrawLine(prev_x, prev_y, x, y, BLUE);
+    }
+    
+    // 更新前一点的位置
+    prev_x = x;
+    prev_y = y;
+    
+    // 当绘制到曲线的最右侧时，重置first_point标志
+    if(x >= LCD_DRAW_CURVE_X_MAX-1 || x == 0) {
+        first_point = 1;
+    }
+}
