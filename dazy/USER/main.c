@@ -74,8 +74,48 @@ float32_t ecg_queue_buffer[32]; // 足够大的缓冲区用于队列
 // 用于传递ECG数据的邮箱
 OS_Q ECGDataQ;
 
+//__________________________________________________________________________________________________________________________________
+// 添加看门狗相关定义
+#define WATCHDOG_TIMEOUT_MS     15000   // 增加到15秒超时
+#define WATCHDOG_FEED_PERIOD    5000    // 喂狗周期改为5秒
+#define WATCHDOG_CHECK_PERIOD   5       // 看门狗检测周期5秒
+
+// 看门狗任务定义
+#define WATCHDOG_TASK_PRIO      2       // 最高优先级（除了中断任务）
+#define WATCHDOG_STK_SIZE       512     // 任务堆栈大小
+OS_TCB WatchdogTaskTCB;                 // 任务控制块
+CPU_STK WATCHDOG_TASK_STK[WATCHDOG_STK_SIZE]; // 任务堆栈
+void watchdog_task(void *p_arg);        // 任务函数声明
+
+// 看门狗定时器和计数器
+OS_TMR WatchdogTimer;                   // uC/OS定时器
+volatile u32 watchdog_counter;          // 看门狗计数器
+volatile u8 system_alive_flag;          // 系统活跃标志
+
+// 各任务的喂狗标志
+typedef struct {
+    u8 ecg_task_alive;      // ECG任务活跃标志
+    u8 disp_task_alive;     // 显示任务活跃标志
+    u8 start_task_alive;    // 启动任务活跃标志
+} task_watchdog_t;
+
+volatile task_watchdog_t task_watchdog = {0, 0, 0};
+
+// 看门狗定时器回调函数
+void watchdog_timer_callback(void *p_tmr, void *p_arg);
+
+// 喂狗函数
+void feed_watchdog_from_task(u8 task_id);
+
+// 任务ID定义
+#define TASK_ID_START   0
+#define TASK_ID_ECG     1  
+#define TASK_ID_DISP    2
+
+//__________________________________________________________________________________________________________________________________
 
 
+//__________________________________________________________________________________________________________________________________
 //-----------------------------------------------------------------
 // 心电数据采集
 //-----------------------------------------------------------------
@@ -156,6 +196,11 @@ const float32_t LPF_2Hz[NumTaps]  = {
   -0.0003634814057,-0.0003764661378,-0.0003852125083,-0.000391335343,-0.0003963182389,
   -0.0004015014856,-0.0004080719373,-0.0004170549801,-0.0004293085367
 	};
+//__________________________________________________________________________________________________________________________________
+
+
+
+
 
 //DRDY引脚
 void EXTI9_5_IRQHandler(void)
@@ -282,40 +327,67 @@ int main(void)
 //开始任务函数
 void start_task(void *p_arg)
 {
-	OS_ERR err;
-	CPU_SR_ALLOC();
-	p_arg = p_arg;
+    OS_ERR err;
+    CPU_SR_ALLOC();
+    p_arg = p_arg;
 
-	CPU_Init();
+    CPU_Init();
 #if OS_CFG_STAT_TASK_EN > 0u
    OSStatTaskCPUUsageInit(&err);  	//统计任务                
 #endif
-	
+    
 #ifdef CPU_CFG_INT_DIS_MEAS_EN		//如果使能了测量中断关闭时间
     CPU_IntDisMeasMaxCurReset();	
 #endif
 
 #if OS_CFG_APP_HOOKS_EN				//使用钩子函数
-	App_OS_SetAllHooks();			
+    App_OS_SetAllHooks();			
 #endif
-	
+    
 #if	OS_CFG_SCHED_ROUND_ROBIN_EN  //当使用时间片轮转的时候
-	 //使能时间片轮转调度功能,时间片长度为1个系统时钟节拍，既1*5=5ms
-	OSSchedRoundRobinCfg(DEF_ENABLED,1,&err);  
+     //使能时间片轮转调度功能,时间片长度为1个系统时钟节拍，既1*5=5ms
+    OSSchedRoundRobinCfg(DEF_ENABLED,1,&err);  
 #endif		
-	
-	OS_CRITICAL_ENTER();	//进入临界区
+    
+    OS_CRITICAL_ENTER();	//进入临界区
 
     // 创建信号量
     OSSemCreate(&ECGDataSem,
                 "ECG Data Semaphore",
                 0,                    // 初始值为0，表示没有数据可处理
                 &err);
-                // 创建邮箱，用于传递心电数据
+                
+    // 创建邮箱，用于传递心电数据
     OSQCreate(&ECGDataQ,
           "ECG Data Queue",
           32,             // 队列长度
           &err);
+
+    // 创建看门狗定时器
+    OSTmrCreate(&WatchdogTimer,
+                "Watchdog Timer",
+                0,                              // 初始延时
+                300,                           // 1秒周期 (假设系统节拍100Hz，即10ms一个节拍)
+                OS_OPT_TMR_PERIODIC,           // 周期性定时器
+                watchdog_timer_callback,       // 回调函数
+                NULL,                          // 回调参数
+                &err);
+        OSTmrStart(&WatchdogTimer, &err);
+
+    // 创建看门狗任务
+    OSTaskCreate((OS_TCB    * )&WatchdogTaskTCB,
+                 (CPU_CHAR  * )"watchdog task",
+                 (OS_TASK_PTR )watchdog_task,
+                 (void      * )0,
+                 (OS_PRIO     )WATCHDOG_TASK_PRIO,
+                 (CPU_STK   * )&WATCHDOG_TASK_STK[0],
+                 (CPU_STK_SIZE)WATCHDOG_STK_SIZE/10,
+                 (CPU_STK_SIZE)WATCHDOG_STK_SIZE,
+                 (OS_MSG_QTY  )0,
+                 (OS_TICK     )0,
+                 (void       * )0,
+                 (OS_OPT      )OS_OPT_TASK_STK_CHK|OS_OPT_TASK_STK_CLR,
+                 (OS_ERR    * )&err);
 
     //创建心电数据处理任务
     OSTaskCreate((OS_TCB    * )&ECGTaskTCB,         //任务控制块
@@ -331,6 +403,7 @@ void start_task(void *p_arg)
                  (void       * )0,                  //用户补充的存储区
                  (OS_OPT      )OS_OPT_TASK_STK_CHK|OS_OPT_TASK_STK_CLR, //任务选项
                  (OS_ERR    * )&err);               //存放该函数错误时的返回值
+                 
      // 创建显示任务
     OSTaskCreate((OS_TCB    * )&DISPTaskTCB,
              (CPU_CHAR  * )"disp task",
@@ -345,13 +418,98 @@ void start_task(void *p_arg)
              (void       * )0,
              (OS_OPT      )OS_OPT_TASK_STK_CHK|OS_OPT_TASK_STK_CLR,
              (OS_ERR    * )&err);            
-	
-	
-	OS_CRITICAL_EXIT();	//退出临界区
-
+    
+    // 初始化看门狗相关变量
+    watchdog_counter = 0;
+    system_alive_flag = 1;
+    task_watchdog.ecg_task_alive = 0;
+    task_watchdog.disp_task_alive = 0;
+    task_watchdog.start_task_alive = 1;  // 启动任务立即标记为活跃
+    
+    printf("System watchdog initialized\n");
+    
+    OS_CRITICAL_EXIT();	//退出临界区
 
 }
 
+// 看门狗任务实现 - 只监控ECG和显示任务
+void watchdog_task(void *p_arg) 
+{
+    OS_ERR err;
+    u32 error_count = 0;
+    
+    printf("Watchdog task started - monitoring ECG and DISP tasks only\n");
+    
+    // 给其他任务更多启动时间
+    OSTimeDlyHMSM(0, 0, 5, 0, OS_OPT_TIME_HMSM_STRICT, &err);
+    
+    while(1) {
+        // 只检查ECG和显示任务的活跃状态
+        u8 critical_tasks_alive = task_watchdog.ecg_task_alive && 
+                                 task_watchdog.disp_task_alive;
+        
+        if(critical_tasks_alive && system_alive_flag) {
+            // 关键任务正常，重置错误计数
+            error_count = 0;
+            printf("Critical tasks OK - ECG:%d, DISP:%d, SYS:%d\n", 
+                   task_watchdog.ecg_task_alive,
+                   task_watchdog.disp_task_alive,
+                   system_alive_flag);
+        } else {
+            error_count++;
+            printf("Watchdog ERROR - ECG:%d, DISP:%d, SYS:%d, ErrCnt:%d\n", 
+                   task_watchdog.ecg_task_alive,
+                   task_watchdog.disp_task_alive, 
+                   system_alive_flag,
+                   error_count);
+            
+            // 连续3次检测失败才执行复位（降低误触发）
+            if(error_count >= 3) {
+                printf("CRITICAL TASKS TIMEOUT! System will reset in 3 seconds...\n");
+                
+                // 闪烁LED警告
+                for(int i = 0; i < 6; i++) {
+                    LED0 = 0;  // 点亮LED
+                    OSTimeDlyHMSM(0, 0, 0, 250, OS_OPT_TIME_HMSM_STRICT, &err);
+                    LED0 = 1;  // 熄灭LED
+                    OSTimeDlyHMSM(0, 0, 0, 250, OS_OPT_TIME_HMSM_STRICT, &err);
+                }
+                
+                // 执行软件复位
+                NVIC_SystemReset();
+            }
+        }
+        
+        // 只清除关键任务的活跃标志
+        task_watchdog.ecg_task_alive = 0;
+        task_watchdog.disp_task_alive = 0; 
+        system_alive_flag = 0;
+        
+        // 检查周期改为3秒，提高响应速度
+        OSTimeDlyHMSM(0, 0, 3, 0, OS_OPT_TIME_HMSM_STRICT, &err);
+    }
+}
+// 看门狗定时器回调函数
+void watchdog_timer_callback(void *p_tmr, void *p_arg)
+{
+    // 定时器回调中不要执行复杂操作，只更新计数器
+    watchdog_counter++;
+    system_alive_flag = 1;  // 标记系统时钟正常
+}
+
+void feed_watchdog_from_task(u8 task_id)
+{
+    switch(task_id) {
+        case TASK_ID_ECG:
+            task_watchdog.ecg_task_alive = 1;
+            break;
+        case TASK_ID_DISP:
+            task_watchdog.disp_task_alive = 1;
+            break;
+        default:
+            break;
+    }
+}
 
 void ecg_task(void *p_arg)
 {
@@ -387,6 +545,11 @@ void ecg_task(void *p_arg)
                  OS_OPT_PEND_BLOCKING,
                  NULL,          // 不获取时间戳
                  &err);
+        static u32 ecg_feed_counter = 0;
+        ecg_feed_counter++;
+        if(ecg_feed_counter % 100 == 0) {
+            feed_watchdog_from_task(TASK_ID_ECG);
+        }
         
         // 只处理ch2_data
         Input_data2=(float32_t)(ch2_data^0x800000);
@@ -568,7 +731,14 @@ void disp_task(void *p_arg)
                 }
             }
         }
-        
+
+        // 显示任务喂狗 - 每25个点更新一次
+        if(bmp_display_counter % 25 == 0) {
+            feed_watchdog_from_task(TASK_ID_DISP);
+            
+            // ...existing display update code...
+        }
+
         // 更新显示信息 - 降低更新频率
         bmp_display_counter++;
         if(bmp_display_counter % 25 == 0) {  // 每25个点更新一次显示
