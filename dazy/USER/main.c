@@ -19,7 +19,8 @@
 #include "ADX922.h"
 #include "spi.h"
 
-
+volatile float current_BPM = 0.0f;  // 当前心率值
+volatile u8 bmp_updated = 0;        // BPM更新标志
 //任务优先级
 #define START_TASK_PRIO		3
 //任务堆栈大小	
@@ -48,10 +49,25 @@ OS_TCB DISPTaskTCB;               // 任务控制块
 CPU_STK DISP_TASK_STK[DISP_STK_SIZE]; // 任务堆栈
 void disp_task(void *p_arg);      // 任务函数声明
 
-// 添加到main.c文件开头或适当的头文件中
-#define WAVE_BASELINE 128    // 波形基线位置（屏幕Y坐标）
-#define WAVE_Y_OFFSET 20    // 波形上边界偏移量
-
+#define WAVE_START_X 0          
+#define WAVE_END_X 160          
+#define WAVE_START_Y 64         
+#define WAVE_END_Y 128          
+#define WAVE_HEIGHT 64          
+#define WAVE_BASELINE 96        // 只保留这一个定义
+void draw_coordinate_grid(void);
+void clear_wave_column(u16 x_pos);
+    
+// 针对ECG数据范围100000-200000调整参数
+#define ECG_DATA_CENTER 135000  // ECG数据中心值
+#define ECG_DATA_SCALE 0.0018f  // 缩放因子：(ECG_range/2) / (WAVE_HEIGHT/2) = 50000/32 ≈ 0.0006
+    
+// 坐标网格参数
+#define GRID_COLOR GRAYBLUE     // 网格颜色
+#define AXIS_COLOR BLACK        // 坐标轴颜色
+#define GRID_STEP_X 20          // X轴网格间距（像素）
+#define GRID_STEP_Y 16          // Y轴网格间距（像素）
+    
 // 用于存储波形数据的环形缓冲区
 float32_t ecg_queue_buffer[32]; // 足够大的缓冲区用于队列
 
@@ -65,7 +81,6 @@ OS_Q ECGDataQ;
 //-----------------------------------------------------------------
 u32 ch1_data;		// 通道1的数据
 u32 ch2_data;		// 通道2的数据
-u8 flog;				// 触发中断标志位
 u16 point_cnt;	// 两个峰值之间的采集点数，用于计算心率
 
 #define Samples_Number  1    											// 采样点数
@@ -338,20 +353,20 @@ void start_task(void *p_arg)
 }
 
 
-// 2. 修改ecg_task函数，只处理ch2_data
 void ecg_task(void *p_arg)
 {
     arm_fir_instance_f32 S2;  // 只保留S2滤波器
     OS_ERR err;
     
     u32 p_num=0;     // 用于刷新最大值和最小值
-    u32 min[2]={0xFFFFFFFF,0xFFFFFFFF};
-    u32 max[2]={0,0};
-    u32 Peak;         // 峰峰值
-    u32 BPM_LH[3];    // 用于判断波峰
+    float32_t min[2]={0xFFFFFFFF,0xFFFFFFFF};  // 改为float32_t类型
+    float32_t max[2]={0,0};                    // 改为float32_t类型
+    float32_t Peak = 0;                        // 峰峰值，改为float32_t
+    float32_t BPM_LH[3] = {0};                 // 用于判断波峰的滑动窗口
     float BPM;        // 心率
     
-    flog=0;
+    // 心率检测相关变量
+    static u32 sample_count = 0;               // 采样计数器，替代原来的point_cnt+j-Samples_Number
     
     // 只初始化S2滤波器
     arm_fir_init_f32(&S2, NumTaps, (float32_t *)BPF_5Hz_40Hz, firState2, blockSize);
@@ -372,52 +387,92 @@ void ecg_task(void *p_arg)
                  OS_OPT_PEND_BLOCKING,
                  NULL,          // 不获取时间戳
                  &err);
-                 
-        // 移除ch1_data处理代码
+        
         // 只处理ch2_data
         Input_data2=(float32_t)(ch2_data^0x800000);
         // 实现FIR滤波
         arm_fir_f32(&S2, &Input_data2, &Output_data2, blockSize);
         
-        // 比较大小
-        if(min[1]>Output_data2)
-            min[1]=Output_data2;
-        if(max[1]<Output_data2)
-            max[1]=Output_data2;
+        // 比较大小 - 改为float32_t类型比较
+        if(min[1] > Output_data2)
+            min[1] = Output_data2;
+        if(max[1] < Output_data2)
+            max[1] = Output_data2;
             
-        BPM_LH[1]=BPM_LH[2];
-        BPM_LH[2]=Output_data2;
-        if((BPM_LH[0]<BPM_LH[1])&(BPM_LH[1]>max[0]-Peak/3)&(BPM_LH[2]<BPM_LH[1]))
-        {
-            BPM=(float)60000.0/(point_cnt*4);
-            point_cnt=0;
-        }
-            
+        // 更新滑动窗口 - 与原代码逻辑一致
+        BPM_LH[0] = BPM_LH[1];
+        BPM_LH[1] = BPM_LH[2];
+        BPM_LH[2] = Output_data2;
+        
         // 每隔2000个点重新测量一次最大最小值
         p_num++;
-        if(p_num>2000)
+        if(p_num > 2000)
         {
-            min[0]=min[1];          
-            max[0]=max[1];
-            min[1]=0xFFFFFFFF;
-            max[1]=0;
-            Peak=max[0]-min[0];
-            p_num=0;
+            min[0] = min[1];          
+            max[0] = max[1];
+            min[1] = 0xFFFFFFFF;
+            max[1] = 0;
+            Peak = max[0] - min[0];
+            p_num = 0;
+            
+            // 调试输出
+            if(Peak > 1000) {
+                printf("Updated Peak: %.0f, Max: %.0f, Min: %.0f\n", Peak, max[0], min[0]);
+            }
         }
         
-        // 输出处理后的数据
-        printf("%d\n",((u32)Output_data2));
+        // 心率检测算法 - 基于原代码逻辑
+        if(p_num > 100 && Peak > 1000) {  // 确保有足够的初始化时间和有效峰值
+            // 检测峰值：三点局部最大值且超过动态阈值
+            // 原逻辑：(BPM_LH[0]<BPM_LH[1])&(BPM_LH[1]>max[0]-Peak/3)&(BPM_LH[2]<BPM_LH[1])
+            if((BPM_LH[0] < BPM_LH[1]) && 
+               (BPM_LH[1] > (max[0] - Peak/3)) && 
+               (BPM_LH[2] < BPM_LH[1]))
+            {
+                // 计算心率 - 基于原代码公式但调整采样频率
+                // 原公式：BPM=(float)60000.0/(float)((point_cnt+j-Samples_Number)*4);
+                // 调整为250Hz采样频率：BPM = 60*250 / sample_count = 15000 / sample_count
+                if(sample_count > 50) {  // 避免除零和过高心率
+                    BPM = 15000.0f / (float)sample_count;  // 250Hz采样频率下的心率计算
+                    
+                    // 心率范围限制 - 参考原代码的BPM<200限制，但更严格
+                    if(BPM >= 40.0f && BPM <= 180.0f) {
+                        current_BPM = BPM;
+                        bmp_updated = 1;
+                        printf("Peak detected! Sample_count: %d, Heart Rate: %.3f BPM\n", sample_count, BPM);
+                    }
+                }
+                
+                // 重置采样计数器 
+                sample_count = 0;
+            }
+        }
         
-if(p_num % 2 == 0) {
-    static u8 buf_index = 0;
-    buf_index = (buf_index + 1) % 32;
-    ecg_queue_buffer[buf_index] = Output_data2;
-    OSQPost(&ECGDataQ, (void*)&ecg_queue_buffer[buf_index], sizeof(float32_t), OS_OPT_POST_FIFO, &err);
-} 
-}
+        // 增加采样计数器
+        sample_count++;
+        
+        // 长时间无心率检测，重置 - 防止溢出
+        if(sample_count > 2500) {  // 10秒无心率检测
+            current_BPM = 0.0f;
+            bmp_updated = 1;
+            sample_count = 0;
+            printf("Heart rate detection timeout, resetting...\n");
+        }
+        
+        // 输出处理后的数据 - 减少输出频率
+        if(p_num % 50 == 0) {
+            printf("ECG: %.0f, Peak: %.0f, Threshold: %.0f\n", Output_data2, Peak, max[0] - Peak/3);
+        }
+        
+        // 发送数据到显示任务
+        if(p_num % 2 == 0) {
+            static u8 buf_index = 0;
+            buf_index = (buf_index + 1) % 32;
+            ecg_queue_buffer[buf_index] = Output_data2;
+            OSQPost(&ECGDataQ, (void*)&ecg_queue_buffer[buf_index], sizeof(float32_t), OS_OPT_POST_FIFO, &err);
+        } 
     }
-
-
+}
 
 
 void disp_task(void *p_arg)
@@ -430,30 +485,22 @@ void disp_task(void *p_arg)
     static u16 draw_x = 0;          // 当前绘制的X坐标
     static u16 last_y = 96;         // 上一个点的Y坐标（基线位置：64+64/2=96）
     u16 current_y;                  // 当前点的Y坐标
-    u8 str[20];                     // 字符串缓冲区
+    u8 str[30];                     // 增大字符串缓冲区
     static u32 point_count = 0;     // 点计数器
-    
-    // 修改波形显示参数以适应指定区域
-    #define WAVE_START_X 0          // 波形起始X坐标
-    #define WAVE_END_X 160          // 波形结束X坐标
-    #define WAVE_START_Y 64         // 波形起始Y坐标
-    #define WAVE_END_Y 128          // 波形结束Y坐标
-    #define WAVE_HEIGHT 64          // 波形显示高度 (128-64=64)
-    #define WAVE_BASELINE 96        // 波形基线位置 (64+32=96)
-    
-    // 针对ECG数据范围100000-200000调整参数
-    #define ECG_DATA_CENTER 140000  // ECG数据中心值
-    #define ECG_DATA_SCALE 0.0018f  // 缩放因子：(ECG_range/2) / (WAVE_HEIGHT/2) = 50000/32 ≈ 0.0006
+    static u32 bmp_display_counter = 0;  // BPM显示更新计数器
+    static float last_displayed_bmp = 0;  // 上次显示的BPM值
     
     // 初始化显示区域
     LCD_Fill(0, 0, LCD_W, LCD_H, WHITE);
     
     // 显示标题和基本信息
     LCD_ShowString(2, 5, "ECG Monitor", RED, WHITE, 12, 0);
-    LCD_ShowString(2, 20, "Heart Rate: ", BLUE, WHITE, 12, 0);
+
+    // 绘制初始坐标网格
+    draw_coordinate_grid();
     
-    // 绘制波形区域边框（可选）
-    LCD_DrawRectangle(WAVE_START_X, WAVE_START_Y, WAVE_END_X-1, WAVE_END_Y-1, BLACK);
+    // 初始化draw_x为起始位置+1，避免边界问题
+    draw_x = WAVE_START_X + 1;
 
     // 主循环 - 接收并显示数据
     while (1)
@@ -475,22 +522,30 @@ void disp_task(void *p_arg)
             current_y = WAVE_BASELINE - offset;
             
             // 限制Y坐标范围在指定区域内
-            if(current_y < WAVE_START_Y) current_y = WAVE_START_Y;
-            if(current_y > WAVE_END_Y-1) current_y = WAVE_END_Y-1;
+            if(current_y < WAVE_START_Y + 1) current_y = WAVE_START_Y + 1;
+            if(current_y > WAVE_END_Y - 2) current_y = WAVE_END_Y - 2;
             
-            // 优化显示：清除当前列的前面几列（实现滚动效果）
-            u16 clear_x = (draw_x + 3) % WAVE_END_X;  // 提前清除3列
-            if(clear_x < WAVE_END_X) {
-                // 只清除波形区域内的一列
-                LCD_Fill(clear_x, WAVE_START_Y+1, clear_x+1, WAVE_END_Y-1, WHITE);
+            // 修复清除算法 - 避免清除最左边边界
+            u16 clear_offset = 10;  // 提前清除的列数
+            u16 clear_x = draw_x + clear_offset;
+            
+            // 处理循环边界
+            if(clear_x >= WAVE_END_X) {
+                clear_x = clear_x - (WAVE_END_X - WAVE_START_X - 1) + WAVE_START_X + 1;
+            }
+            
+            // 确保不清除边界线
+            if(clear_x > WAVE_START_X && clear_x < WAVE_END_X - 1) {
+                // 智能清除函数
+                clear_wave_column(clear_x);
             }
             
             // 绘制波形线条
-            if(draw_x > WAVE_START_X) {
-                LCD_DrawLine(draw_x-1, last_y, draw_x, current_y, RED);
+            if(draw_x > WAVE_START_X + 1) {
+                LCD_DrawLine(draw_x-1, last_y, draw_x, current_y, BLUE);  // 改为蓝色更清晰
             } else {
                 // 第一个点，只画点
-                LCD_DrawPoint(draw_x, current_y, RED);
+                LCD_DrawPoint(draw_x, current_y, BLUE);
             }
             
             // 更新坐标
@@ -498,17 +553,115 @@ void disp_task(void *p_arg)
             draw_x++;
             point_count++;
             
-            // 如果到达波形区域右边界，重新开始（无需全局刷新）
-            if(draw_x >= WAVE_END_X) {
-                draw_x = WAVE_START_X;
-                last_y = WAVE_BASELINE;  // 重置到基线
+            // 修复边界重置逻辑 - 避免闪烁
+            if(draw_x >= WAVE_END_X - 1) {
+                draw_x = WAVE_START_X + 1;  // 重置到起始位置+1
+                last_y = WAVE_BASELINE;     // 重置到基线
+                
+                // 不要在这里重绘边框，避免闪烁
+                // 只在必要时重绘边框
+                static u32 border_redraw_counter = 0;
+                border_redraw_counter++;
+                if(border_redraw_counter >= 500) {  // 每500个点重绘一次边框
+                    LCD_DrawRectangle(WAVE_START_X, WAVE_START_Y, WAVE_END_X-1, WAVE_END_Y-1, AXIS_COLOR);
+                    border_redraw_counter = 0;
+                }
             }
         }
         
-        // 更新心率显示 (每20个点更新一次，减少频率)
-        if(point_count % 20 == 0) {
-            sprintf((char*)str, "BPM: ---");  
-            LCD_ShowString(80, 20, str, BLUE, WHITE, 12, 0);
+        // 更新显示信息 - 降低更新频率
+        bmp_display_counter++;
+        if(bmp_display_counter % 25 == 0) {  // 每25个点更新一次显示
+            // 只有当BPM值改变时才更新显示
+            if(current_BPM != last_displayed_bmp || bmp_updated) {
+                if(current_BPM > 0) {
+                    sprintf((char*)str, "Rate: %.1f BPM     ", current_BPM);
+                    LCD_ShowString(2, 20, str, BLUE, WHITE, 12, 0);
+                }
+                last_displayed_bmp = current_BPM;
+                bmp_updated = 0;  // 清除更新标志
+            }
+            
+            // 显示当前ECG数值
+            sprintf((char*)str, "Val: %d     ", (s32)(ecg_data - ECG_DATA_CENTER));
+            LCD_ShowString(80, 35, str, BLUE, WHITE, 12, 0);
         }
     }
+}
+
+// 添加智能清除函数，避免闪烁
+void clear_wave_column(u16 x_pos) {
+    if(x_pos <= WAVE_START_X || x_pos >= WAVE_END_X - 1) {
+        return;  // 不清除边界
+    }
+    
+    for(u16 y = WAVE_START_Y + 1; y < WAVE_END_Y - 1; y++) {
+        u8 is_grid_point = 0;
+        
+        // 检查是否是垂直网格线
+        if((x_pos % GRID_STEP_X) == 0 && (y % 4) == 0) {
+            LCD_DrawPoint(x_pos, y, GRID_COLOR);
+            is_grid_point = 1;
+        }
+        // 检查是否是水平网格线
+        else if((y % GRID_STEP_Y) == 0 && (x_pos % 4) == 0) {
+            LCD_DrawPoint(x_pos, y, GRID_COLOR);
+            is_grid_point = 1;
+        }
+        // 检查是否是基线
+        else if(y == WAVE_BASELINE && (x_pos % 2) == 0) {
+            LCD_DrawPoint(x_pos, y, RED);
+            is_grid_point = 1;
+        }
+        
+        // 如果不是网格点，则清除为背景色
+        if(!is_grid_point) {
+            LCD_DrawPoint(x_pos, y, WHITE);
+        }
+    }
+}
+
+// 优化的网格绘制函数 - 添加更清晰的边界
+void draw_coordinate_grid(void) {
+    u16 i, x, y;
+    u8 str[20];
+    
+    // 绘制主边框 - 使用双线边框，更清晰
+    LCD_DrawRectangle(WAVE_START_X, WAVE_START_Y, WAVE_END_X-1, WAVE_END_Y-1, AXIS_COLOR);
+    
+    // 绘制垂直网格线（时间轴）
+    for(i = WAVE_START_X + GRID_STEP_X; i < WAVE_END_X - 1; i += GRID_STEP_X) {
+        // 主刻度线（每1秒）
+        for(y = WAVE_START_Y + 2; y < WAVE_END_Y - 2; y += 4) {
+            LCD_DrawPoint(i, y, GRID_COLOR);
+        }
+        
+        // 在底部标注时间刻度
+        if(i <= WAVE_END_X - 15) {
+            sprintf((char*)str, "%ds", (i - WAVE_START_X) / GRID_STEP_X);
+            LCD_ShowString(i - 4, WAVE_END_Y + 3, str, AXIS_COLOR, WHITE, 8, 0);
+        }
+    }
+    
+    // 绘制水平网格线（幅度轴）
+    for(i = WAVE_START_Y + GRID_STEP_Y; i < WAVE_END_Y - 1; i += GRID_STEP_Y) {
+        // 主刻度线
+        for(x = WAVE_START_X + 2; x < WAVE_END_X - 2; x += 4) {
+            LCD_DrawPoint(x, i, GRID_COLOR);
+        }
+    }
+    
+    // 绘制加强的基线（0V参考线）
+    for(i = WAVE_START_X + 1; i < WAVE_END_X - 1; i += 2) {
+        LCD_DrawPoint(i, WAVE_BASELINE, RED);
+    }
+    
+    // 绘制Y轴刻度标签
+    LCD_ShowString(WAVE_END_X + 2, WAVE_START_Y + GRID_STEP_Y - 4, "+0.5", AXIS_COLOR, WHITE, 8, 0);
+    LCD_ShowString(WAVE_END_X + 2, WAVE_BASELINE - 4, " 0 ", RED, WHITE, 8, 0);
+    LCD_ShowString(WAVE_END_X + 2, WAVE_BASELINE + GRID_STEP_Y - 4, "-0.5", AXIS_COLOR, WHITE, 8, 0);
+    
+    // 添加单位标签
+    LCD_ShowString(WAVE_END_X + 2, WAVE_START_Y - 10, "mV", AXIS_COLOR, WHITE, 8, 0);
+    LCD_ShowString(WAVE_START_X, WAVE_END_Y + 15, "Time(s)", AXIS_COLOR, WHITE, 8, 0);
 }
