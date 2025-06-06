@@ -47,7 +47,7 @@ void SPI3_Init(void)
     SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;                          // 选择了串行时钟的稳态:时钟拉低
     SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;                        // 数据捕获于第二个时钟沿
     SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;                           // NSS信号由软件控制
-    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32; // 定义波特率预分频的值:波特率预分频值为32
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256; // 定义波特率预分频的值:波特率预分频值为256
     SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;                  // 指定数据传输从MSB位开始
     SPI_InitStructure.SPI_CRCPolynomial = 7;                            // CRC值计算的多项式
     SPI_Init(SPI3, &SPI_InitStructure);                                 // 根据SPI_InitStruct中指定的参数初始化外设SPIx寄存器

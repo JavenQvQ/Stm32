@@ -298,7 +298,7 @@ int main(void)
 	LCD_Fill(0,0,LCD_W,LCD_H,WHITE);//填充背景色
 
     GPIO_ADX922_Configuration();		// ADX922引脚初始化
-	SPI3_Init();										// SPI1初始化
+	SPI3_Init();										// SPI3初始化
     ADX922_PowerOnInit();						// ADX922上电初始化
     
     // 初始化uC/OS-III
@@ -424,8 +424,6 @@ void start_task(void *p_arg)
     system_alive_flag = 1;
     task_watchdog.ecg_task_alive = 0;
     task_watchdog.disp_task_alive = 0;
-    task_watchdog.start_task_alive = 1;  // 启动任务立即标记为活跃
-    
     printf("System watchdog initialized\n");
     
     OS_CRITICAL_EXIT();	//退出临界区
@@ -735,8 +733,6 @@ void disp_task(void *p_arg)
         // 显示任务喂狗 - 每25个点更新一次
         if(bmp_display_counter % 25 == 0) {
             feed_watchdog_from_task(TASK_ID_DISP);
-            
-            // ...existing display update code...
         }
 
         // 更新显示信息 - 降低更新频率
@@ -754,7 +750,7 @@ void disp_task(void *p_arg)
             
             // 显示当前ECG数值
             sprintf((char*)str, "Val: %d     ", (s32)(ecg_data - ECG_DATA_CENTER));
-            LCD_ShowString(80, 35, str, BLUE, WHITE, 12, 0);
+            LCD_ShowString(0, 35, str, BLUE, WHITE, 12, 0);
         }
     }
 }
