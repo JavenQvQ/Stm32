@@ -11,13 +11,13 @@
         "name": "APP",
         "files": [
           {
-            "path": "../libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c"
+            "path": "../../../libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c"
           },
           {
-            "path": "../app/main.c"
+            "path": "../../../app/main.c"
           },
           {
-            "path": "../module/stm32f4xx_it.c"
+            "path": "../../../module/stm32f4xx_it.c"
           }
         ],
         "folders": []
@@ -26,7 +26,7 @@
         "name": "STARTUP",
         "files": [
           {
-            "path": "../libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/arm/startup_stm32f40xx.s"
+            "path": "../../../libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/arm/startup_stm32f40xx.s"
           }
         ],
         "folders": []
@@ -35,7 +35,7 @@
         "name": "BSP",
         "files": [
           {
-            "path": "../bsp/uart/bsp_uart.c"
+            "path": "../../../bsp/uart/bsp_uart.c"
           }
         ],
         "folders": []
@@ -44,13 +44,7 @@
         "name": "Board",
         "files": [
           {
-            "path": "../board/board.c"
-          },
-          {
-            "path": "../board/sys.h"
-          },
-          {
-            "path": "../board/sys.c"
+            "path": "../../../board/board.c"
           }
         ],
         "folders": []
@@ -59,130 +53,130 @@
         "name": "Driver",
         "files": [
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/misc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/misc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_adc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_adc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_can.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_can.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cec.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cec.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_crc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_crc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_aes.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_aes.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_des.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_des.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_tdes.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_tdes.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dac.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dac.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dbgmcu.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dbgmcu.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dcmi.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dcmi.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dfsdm.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dfsdm.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma2d.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma2d.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dsi.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dsi.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_exti.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_exti.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash_ramfunc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash_ramfunc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fmpi2c.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fmpi2c.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fsmc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fsmc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_gpio.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_gpio.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash_md5.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash_md5.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash_sha1.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash_sha1.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_i2c.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_i2c.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_iwdg.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_iwdg.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_lptim.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_lptim.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_ltdc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_ltdc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_pwr.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_pwr.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_qspi.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_qspi.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rcc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rcc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rng.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rng.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rtc.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rtc.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_sai.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_sai.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_sdio.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_sdio.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spdifrx.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spdifrx.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spi.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spi.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_syscfg.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_syscfg.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_tim.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_tim.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_usart.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_usart.c"
           },
           {
-            "path": "../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_wwdg.c"
+            "path": "../../../libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_wwdg.c"
           }
         ],
         "folders": []
@@ -194,26 +188,30 @@
       },
       {
         "name": "DOC",
-        "files": [],
+        "files": [
+          {
+            "path": "../../../README.md"
+          }
+        ],
         "folders": []
       },
       {
         "name": "DSP_FFT",
         "files": [
           {
-            "path": "../DSP_FFT/cr4_fft_64_stm32.s"
+            "path": "../../../DSP_FFT/cr4_fft_64_stm32.s"
           },
           {
-            "path": "../DSP_FFT/cr4_fft_256_stm32.s"
+            "path": "../../../DSP_FFT/cr4_fft_256_stm32.s"
           },
           {
-            "path": "../DSP_FFT/cr4_fft_1024_stm32.s"
+            "path": "../../../DSP_FFT/cr4_fft_1024_stm32.s"
           },
           {
-            "path": "../DSP_FFT/stm32_dsp.h"
+            "path": "../../../DSP_FFT/stm32_dsp.h"
           },
           {
-            "path": "../DSP_FFT/table_fft.h"
+            "path": "../../../DSP_FFT/table_fft.h"
           }
         ],
         "folders": []
@@ -222,28 +220,22 @@
         "name": "User",
         "files": [
           {
-            "path": "../project/MDK(V5)/User/ADC.c"
+            "path": "../User/ADC.c"
           },
           {
-            "path": "../project/MDK(V5)/User/ADC.h"
+            "path": "../User/ADC.h"
           },
           {
-            "path": "../project/MDK(V5)/User/MySPI.c"
+            "path": "../User/MySPI.c"
           },
           {
-            "path": "../project/MDK(V5)/User/MySPI.h"
+            "path": "../User/MySPI.h"
           },
           {
-            "path": "../project/MDK(V5)/User/DAC.c"
+            "path": "../User/DAC.c"
           },
           {
-            "path": "../project/MDK(V5)/User/DAC.h"
-          },
-          {
-            "path": "../project/MDK(V5)/User/FFT.h"
-          },
-          {
-            "path": "../project/MDK(V5)/User/FFT.c"
+            "path": "../User/DAC.h"
           }
         ],
         "folders": []
@@ -252,34 +244,45 @@
         "name": "Hardware",
         "files": [
           {
-            "path": "../project/MDK(V5)/Hardware/OLED.c"
+            "path": "../Hardware/OLED.c"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/OLED.h"
+            "path": "../Hardware/OLED.h"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/OLED_Font.h"
+            "path": "../Hardware/OLED_Font.h"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/bmp.h"
+            "path": "../Hardware/bmp.h"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/oledfont.h"
+            "path": "../Hardware/oledfont.h"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/ad9220_dcmi.c"
+            "path": "../Hardware/ad9220_dcmi.c"
           },
           {
-            "path": "../project/MDK(V5)/Hardware/ad9220_dcmi.h"
+            "path": "../Hardware/ad9220_dcmi.h"
+          },
+          {
+            "path": "../Hardware/ad9833.c"
+          },
+          {
+            "path": "../Hardware/ad9833.h"
           }
         ],
         "folders": []
       },
       {
         "name": "::CMSIS",
+        "files": [],
+        "folders": []
+      },
+      {
+        "name": "::Device",
         "files": [
           {
-            "path": ".cmsis/arm_cortexM4lf_math.lib"
+            "path": "../RTE/Device/STM32F407VETx/startup_stm32f407xx.s"
           }
         ],
         "folders": []
@@ -288,20 +291,19 @@
   },
   "outDir": "build",
   "deviceName": null,
-  "packDir": ".pack/Keil/STM32F4xx_DFP.2.17.1",
+  "packDir": null,
   "miscInfo": {
-    "uid": "7203657cf30f395993460f9679c167b6"
+    "uid": "ae2fa44474876e594d77a95e9b2e0869"
   },
   "targets": {
     "f407project": {
       "excludeList": [
-        "<virtual_root>/Hardware/ads8361.c",
-        "<virtual_root>/Hardware/AD9220.C",
-        "<virtual_root>/Hardware/AD9220.c"
+        "<virtual_root>/::Device/startup_stm32f407xx.s"
       ],
       "toolchain": "AC5",
       "compileConfig": {
         "cpuType": "Cortex-M4",
+        "archExtensions": "",
         "floatingPointHardware": "single",
         "scatterFilePath": "",
         "useCustomScatterFile": false,
@@ -411,14 +413,13 @@
             }
           ]
         },
-        "options": "null",
-        "archExtensions": ""
+        "options": "null"
       },
       "uploader": "OpenOCD",
       "uploadConfig": {
         "bin": "",
         "target": "stm32f4x",
-        "interface": "stlink-v2",
+        "interface": "stlink",
         "baseAddr": "0x08000000"
       },
       "uploadConfigMap": {
@@ -432,34 +433,23 @@
           "proType": 1,
           "speed": 8000,
           "otherCmds": ""
-        },
-        "STLink": {
-          "bin": "",
-          "proType": "SWD",
-          "resetMode": "default",
-          "runAfterProgram": true,
-          "speed": 4000,
-          "address": "0x8000000",
-          "elFile": "None",
-          "optionBytes": ".eide/f407project.st.option.bytes.ini",
-          "otherCmds": ""
         }
       },
       "custom_dep": {
         "name": "default",
         "incList": [
-          "../app",
-          "../board",
-          "../bsp",
-          "../libraries/CMSIS/Device/ST/STM32F4xx/Include",
-          "../libraries/STM32F4xx_StdPeriph_Driver/inc",
-          "../module",
-          "../bsp/uart",
-          "../libraries/CMSIS/Include",
-          "../project/MDK(V5)/User",
-          "../project/MDK(V5)/Hardware",
+          "../../../app",
+          "../../../board",
+          "../../../bsp",
+          "../../../libraries/CMSIS/Device/ST/STM32F4xx/Include",
+          "../../../libraries/STM32F4xx_StdPeriph_Driver/inc",
+          "../../../module",
+          "../../../bsp/uart",
+          "../../../libraries/CMSIS/Include",
+          "../User",
+          "../Hardware",
           ".cmsis/include",
-          "../project/MDK(V5)/RTE/_f407project"
+          "../RTE/_f407project"
         ],
         "libList": [],
         "defineList": [
@@ -492,7 +482,11 @@
           },
           "asm-compiler": {},
           "linker": {
+            "$outputTaskExcludes": [
+              ".bin"
+            ],
             "output-format": "elf",
+            "xo-base": "",
             "ro-base": "0x08000000",
             "rw-base": "0x20000000"
           }
