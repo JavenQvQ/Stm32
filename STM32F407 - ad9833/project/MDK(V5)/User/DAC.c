@@ -1,24 +1,35 @@
 #include "board.h"
 
 
-#define DA1_Value_Length 64  // 增加采样点数提高波形质量
-// 标准正弦波数据 (12位DAC，0-4095范围，中心值2048)
-const uint16_t DA1_Value[DA1_Value_Length] = {
-    2048, 2248, 2447, 2642, 2831, 3013, 3185, 3346, 3495, 3630, 3750, 3853, 3939, 4007, 4056, 4085,
-    4095, 4085, 4056, 4007, 3939, 3853, 3750, 3630, 3495, 3346, 3185, 3013, 2831, 2642, 2447, 2248,
-    2048, 1847, 1648, 1453, 1264, 1082, 910, 749, 600, 465, 345, 242, 156, 88, 39, 10,
-    0, 10, 39, 88, 156, 242, 345, 465, 600, 749, 910, 1082, 1264, 1453, 1648, 1847
-};
+
 
 //DAC输出配置
 //PA4和DMA1_Stream5_CH7连接
 //TIM4触发DAC,需要配置TIM4
 //DAC输出频率为fre/DA1_Value_Lenth
-void DAC_Configuration(void)
+void DAC_Configuration(uint16_t *DA1_Value, uint32_t DA1_Value_Length, float amplitude)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
     DAC_InitTypeDef DAC_InitStructure;
     DMA_InitTypeDef DMA_InitStructure;
+    uint32_t i;
+    float amplitude_digital_f; // 使用浮点数变量
+    
+    // 将幅值从0-3.3V转换为0-4095数字值（使用浮点数计算）
+    if(amplitude > 3.3f) amplitude = 3.3f;
+    if(amplitude < 0.0f) amplitude = 0.0f;
+    amplitude_digital_f = amplitude * 4095.0f / 3.3f;
+    
+    // 根据幅值调整DA1_Value数组（使用浮点数计算提高精度）
+    for(i = 0; i < DA1_Value_Length; i++)
+    {
+        // 使用浮点数计算，提高精度
+        float temp_f = (float)DA1_Value[i] * amplitude_digital_f / 4095.0f;
+        DA1_Value[i] = (uint16_t)(temp_f + 0.5f); // 四舍五入
+        
+        // 确保不超出DAC范围
+        if(DA1_Value[i] > 4095) DA1_Value[i] = 4095;
+    }
     
     // 使能时钟
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -26,18 +37,18 @@ void DAC_Configuration(void)
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
     
     // 配置PA5为模拟输出 (DAC Channel 2)
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;  // 改为Pin_5
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
     GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     // DMA配置需要更改为Channel 2对应的Stream
     // DAC Channel 2 使用 DMA1_Stream6_CH7
-    DMA_Cmd(DMA1_Stream6, DISABLE);  // 改为Stream6
+    DMA_Cmd(DMA1_Stream6, DISABLE);
     while(DMA_GetCmdStatus(DMA1_Stream6) != DISABLE);
     
     // 配置DMA
-    DMA_DeInit(DMA1_Stream6);  // 改为Stream6
+    DMA_DeInit(DMA1_Stream6);
     DMA_InitStructure.DMA_Channel = DMA_Channel_7;
     DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     DMA_InitStructure.DMA_BufferSize = DA1_Value_Length;
@@ -51,27 +62,28 @@ void DAC_Configuration(void)
     DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
     DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
     DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&DAC->DHR12R2;  // 改为DHR12R2
-    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)DA1_Value;
-    DMA_Init(DMA1_Stream6, &DMA_InitStructure);  // 改为Stream6
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&DAC->DHR12R2;
+    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)DA1_Value;  // 修正变量名
+    DMA_Init(DMA1_Stream6, &DMA_InitStructure);
 
     // 配置DAC Channel 2
     DAC_InitStructure.DAC_Trigger = DAC_Trigger_T4_TRGO;
     DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
     DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_LFSRUnmask_Bit0;
     DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
-    DAC_Init(DAC_Channel_2, &DAC_InitStructure);  // 改为Channel_2
+    DAC_Init(DAC_Channel_2, &DAC_InitStructure);
     
-    // 设置初始值
-    DAC_SetChannel2Data(DAC_Align_12b_R, 2048);  // 改为SetChannel2Data
+   // 设置初始值（根据幅值调整，使用浮点数计算）
+    uint16_t initial_value = (uint16_t)(amplitude_digital_f / 2.0f + 0.5f);  // 中间值，四舍五入
+    DAC_SetChannel2Data(DAC_Align_12b_R, initial_value);
     
     // 启用DAC和DMA
-    DAC_Cmd(DAC_Channel_2, ENABLE);  // 改为Channel_2
-    DAC_DMACmd(DAC_Channel_2, ENABLE);  // 改为Channel_2
-    DMA_Cmd(DMA1_Stream6, ENABLE);  // 改为Stream6
+    DAC_Cmd(DAC_Channel_2, ENABLE);
+    DAC_DMACmd(DAC_Channel_2, ENABLE);
+    DMA_Cmd(DMA1_Stream6, ENABLE);
 }
 
-void Tim4_Configuration(uint32_t Fre)
+void Tim4_Configuration(uint32_t Fre, uint32_t DA1_Value_Length)
 {	    
     uint32_t period = 0, prescaler = 1;
     

@@ -15,11 +15,17 @@ float filter5(float *filter_buf); //中位值平均滤波法
 
 extern uint8_t ADC1_DMA_Flag;//ADC采集完成数据标志
 extern u16 ADC1_ConvertedValue[ ADC1_DMA_Size ];//ADC数据
-
-
-
 extern uint32_t adc_convert_value[ADC_DMA_DATA_LENGTH]; //存储从 DCMI 接收来的数据
 
+
+#define SIN_Value_Length 64  // 增加采样点数提高波形质量
+// 标准正弦波数据 (12位DAC，0-4095范围，中心值2048)
+uint16_t SIN_Value[SIN_Value_Length] = {
+    2048, 2248, 2447, 2642, 2831, 3013, 3185, 3346, 3495, 3630, 3750, 3853, 3939, 4007, 4056, 4085,
+    4095, 4085, 4056, 4007, 3939, 3853, 3750, 3630, 3495, 3346, 3185, 3013, 2831, 2642, 2447, 2248,
+    2048, 1847, 1648, 1453, 1264, 1082, 910, 749, 600, 465, 345, 242, 156, 88, 39, 10,
+    0, 10, 39, 88, 156, 242, 345, 465, 600, 749, 910, 1082, 1264, 1453, 1648, 1847
+};
 
 // void AD9220_DATAHandle(void)
 // {
@@ -133,10 +139,13 @@ int main(void)
 	//ADC_FFT_Init();//ADC初始化
     //AD9220_DCMIDMA_Config();//AD9220初始化
 	AD9833_Init_GPIO();//AD9833初始化GPIO
-	AD9833_WaveSeting(10000.0,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
-	AD9833_AmpSet(64);//设置AD9833输出幅度
-	DAC_Configuration();//DAC配置
-	Tim4_Configuration(1000);//定时器4配置，频率1KHz
+	AD9833_WaveSeting(300,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
+	AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
+
+
+
+	//DAC_Configuration(SIN_Value, SIN_Value_Length,0.79);//DAC配置，使用正弦波数据
+	//Tim4_Configuration(1000, SIN_Value_Length);//配置定时器4，频率1000Hz，采样点数为SIN_Value_Length
 	while(1)
 	{
 
