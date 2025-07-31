@@ -123,6 +123,7 @@ void dcmi_capture_control(FunctionalState state);//开启或关闭DCMI采集
 void dcmi_dma_nvic_init(void);//配置 DMA 中断
 void HSYNC_VSYNC_init(void);
 void AD9220_DCMIDMA_Config(void);
+void Tim5_PWM_Config(uint32_t Fre);//配置 TIM5 输出 PWM 信号作为 AD9220 的时钟
 
 #endif /* __AD9220_DCMI_H */
 

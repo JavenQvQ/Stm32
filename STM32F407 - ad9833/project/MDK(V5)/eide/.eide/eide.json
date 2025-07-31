@@ -236,6 +236,12 @@
           },
           {
             "path": "../User/DAC.h"
+          },
+          {
+            "path": "../User/Gti.c"
+          },
+          {
+            "path": "../User/Gti.h"
           }
         ],
         "folders": []
@@ -269,6 +275,18 @@
           },
           {
             "path": "../Hardware/ad9833.h"
+          },
+          {
+            "path": "../Hardware/KEY.c"
+          },
+          {
+            "path": "../Hardware/KEY.h"
+          },
+          {
+            "path": "../Hardware/AD9220.c"
+          },
+          {
+            "path": "../Hardware/AD9220.h"
           }
         ],
         "folders": []
@@ -298,7 +316,8 @@
   "targets": {
     "f407project": {
       "excludeList": [
-        "<virtual_root>/::Device/startup_stm32f407xx.s"
+        "<virtual_root>/::Device/startup_stm32f407xx.s",
+        "<virtual_root>/Hardware/AD9220.c"
       ],
       "toolchain": "AC5",
       "compileConfig": {

@@ -225,9 +225,71 @@ void HSYNC_VSYNC_init(void)
 	GPIO_SetBits(GPIOE,GPIO_Pin_14 | GPIO_Pin_15);//GPIOE0,E1设置高
 }
 
+
+
+void Tim5_PWM_Config(uint32_t Fre)
+{
+    uint32_t period = 0, prescaler = 1;
+    
+    // APB1时钟频率为42MHz，但定时器时钟为84MHz（因为APB1分频系数不为1时，定时器时钟x2）
+    uint32_t timer_clock = 84000000;
+    uint32_t target_freq = Fre; // 使用Fre作为目标频率
+    uint32_t total_count = timer_clock / target_freq;
+    
+    // 寻找最佳的分频值组合
+    for (prescaler = 1; prescaler <= 65536; prescaler++) {
+        period = total_count / prescaler;
+        if (period <= 65536 && period > 0) {
+            break;
+        }
+    }
+    
+    // 边界检查和错误处理
+    if (period == 0) period = 1;
+    if (period > 65536) period = 65536;
+    if (prescaler > 65536) prescaler = 65536;
+
+    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+    TIM_OCInitTypeDef TIM_OCInitStructure;
+    GPIO_InitTypeDef GPIO_InitStructure;
+    
+    // 使能时钟
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    
+    // 配置PA2为TIM5_CH2 PWM输出
+     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_TIM5);
+    
+    // 使用计算出的参数配置定时器
+    TIM_TimeBaseStructure.TIM_Period = period - 1;         // ARR = period - 1
+    TIM_TimeBaseStructure.TIM_Prescaler = prescaler - 1;   // PSC = prescaler - 1
+    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
+    
+    // PWM输出配置 - 50%占空比，使用通道3（PA2对应TIM5_CH3）
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+    TIM_OCInitStructure.TIM_Pulse = period / 2;  // 50%占空比
+    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+    TIM_OC3Init(TIM5, &TIM_OCInitStructure);  // 使用通道3，不是通道2
+    TIM_OC3PreloadConfig(TIM5, TIM_OCPreload_Enable);
+    
+    TIM_ARRPreloadConfig(TIM5, ENABLE);
+    TIM_Cmd(TIM5, ENABLE);
+}
+
 void AD9220_DCMIDMA_Config(void)
-{	MCO1_GPIO_Config();//配置 PA8 为输出模式
-	RCC_MCO1Config(RCC_MCO1Source_HSE, RCC_MCO1Div_1);//PA8 输出 8M 时钟信号
+{	
+	MCO1_GPIO_Config();//配置 PA8 为输出模式
+	RCC_MCO1Config(RCC_MCO1Source_HSE,0x06000000);//PA8 输出 8M 时钟信号
+	//Tim5_PWM_Config(100000); // PA1输出Fre频率的PWM信号
 	
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//设置系统中断优先级分组2:2位抢占优先级，2位响应优先级	
 	
