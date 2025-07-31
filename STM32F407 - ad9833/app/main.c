@@ -1,13 +1,18 @@
 
 #include "board.h"
-#include "bsp_uart.h"
+#include "bsp_uart.h"//使用PA9和PA10
 #include "arm_math.h"
 #include "OLED.h"//使用PB14SCL PB15SDA
 #include "FFT.h"//使用arm_math.h
 #include "ADC.h"//使用PB01和定时器3以及DMA2_Stream0
 #include "DAC.h"//使用PA04和TIM4以及DMA1_Stream5
 #include "ad9220_dcmi.h"//使用DCMI接口和DMA2_Stream1
-#include "ad9833.h"//使用SPI2和PB12 PB13 PB14
+						//GPIOA: 3个引脚（PA2, PA4, PA6）
+						//GPIOB: 3个引脚（PB5, PB6, PB7）
+						//GPIOC: 7个引脚（PC6, PC7, PC8, PC9, PC10, PC12）
+						//GPIOD: 1个引脚（PD2）
+						//GPIOE: 4个引脚（PE4, PE5, PE6, PE14, PE15）
+#include "ad9833.h"//使用PB12 PB13 PB14,
 #include <stdio.h>
 #include "board.h"
 #define Filter_Number 4//滤波器长度
@@ -134,12 +139,12 @@ int main(void)
 	board_init();
 	//OLED_Init();
 	
-	//uart1_init(115200U);
+	uart1_init(115200U);
 	//uart2_init(115200U);
 	//ADC_FFT_Init();//ADC初始化
-    //AD9220_DCMIDMA_Config();//AD9220初始化
+    AD9220_DCMIDMA_Config();//AD9220初始化
 	AD9833_Init_GPIO();//AD9833初始化GPIO
-	AD9833_WaveSeting(300,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
+	AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
 	AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
 
 
@@ -166,7 +171,7 @@ void DMA2_Stream1_IRQHandler(void)
 {
 	uint16_t counter;
 
-	dcmi_capture_control(DISABLE);//关闭DCMI采集
+	//dcmi_capture_control(DISABLE);//关闭DCMI采集
 	HSYNC_VSYNC_init();
 	for(counter = 0; counter < ADC_DMA_DATA_LENGTH; counter++)
 	{
@@ -175,7 +180,7 @@ void DMA2_Stream1_IRQHandler(void)
 		printf("%u\r\n",(uint16_t)(adc_convert_value[counter] >> 16));//串口打印数据
 		//printf("32\n");
 	}
-	dcmi_capture_control(ENABLE);//开启DCMI采集
+	//dcmi_capture_control(ENABLE);//开启DCMI采集
 	DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1); //清除中断标志位 TCIF:DMA 传输完成
 	GPIO_ResetBits(GPIOE,GPIO_Pin_14 | GPIO_Pin_15);//将 HSYNC 和 VSYNC 拉低，开始采集
 }
@@ -222,3 +227,14 @@ float filter5(float *filter_buf)
  return filter_sum / (Filter_Number - 2);
 }
 
+
+
+void timu1(void)
+{
+	const uint16_t fre;
+	const uint16_t AMP;//正弦波频率和幅度
+
+	
+
+
+}
