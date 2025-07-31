@@ -5,7 +5,7 @@
 #include "stdlib.h"	
 
 
-//-----------------OLED¶Ë¿Ú¶¨Òå---------------- 
+//-----------------OLEDç«¯å£å®šä¹‰---------------- 
 
 #define OLED_SCL_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_8)//SCL -> PB8
 #define OLED_SCL_Set() GPIO_SetBits(GPIOB,GPIO_Pin_8)
@@ -13,16 +13,16 @@
 #define OLED_SDA_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_9)//SDA -> PB9
 #define OLED_SDA_Set() GPIO_SetBits(GPIOB,GPIO_Pin_9)
 
-// Èç¹ûÄúµÄOLEDÄ£¿éÓĞRESÒı½Å£¬¿ÉÒÔ±£Áô»ò×¢ÊÍµô
+// å¦‚æœæ‚¨çš„OLEDæ¨¡å—æœ‰RESå¼•è„šï¼Œå¯ä»¥ä¿ç•™æˆ–æ³¨é‡Šæ‰
 // #define OLED_RES_Clr() GPIO_ResetBits(GPIOD,GPIO_Pin_4)//RES
 // #define OLED_RES_Set() GPIO_SetBits(GPIOD,GPIO_Pin_4)
 
-#define OLED_CMD  0	//Ğ´ÃüÁî
-#define OLED_DATA 1	//Ğ´Êı¾İ
+#define OLED_CMD  0	//å†™å‘½ä»¤
+#define OLED_DATA 1	//å†™æ•°æ®
 
 
-#define OLED_CMD  0	//Ğ´ÃüÁî
-#define OLED_DATA 1	//Ğ´Êı¾İ
+#define OLED_CMD  0	//å†™å‘½ä»¤
+#define OLED_DATA 1	//å†™æ•°æ®
 
 void OLED_ClearPoint(u8 x,u8 y);
 void OLED_ColorTurn(u8 i);
