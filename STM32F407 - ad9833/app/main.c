@@ -40,50 +40,111 @@ void Model_5(void); // 模型5函数声明
 uint16_t SIN_Value[SIN_Value_Length];
 
 
-#define PI_PRECISE 3.141592653589793
+// 添加DSP优化的常量定义
+#define PI_F32                 3.14159265358979f
+#define TWO_PI_F32            (2.0f * PI_F32)
+#define FILTER_GAIN_F32       5.13f
+#define FILTER_C1_F32         1e-8f
+#define FILTER_C2_F32         3e-4f
+#define TARGET_OUTPUT_V_F32   2.0f
+#define MAX_COMPENSATION_F32  3.2f
+#define MIN_COMPENSATION_F32  0.1f
 
+// 使用DSP库优化的幅值补偿计算函数
+float calculate_amplitude_compensation_precise(uint32_t frequency)
+{
+    // 使用单精度浮点数，DSP库针对单精度优化
+    float32_t omega = TWO_PI_F32 * (float32_t)frequency;
+    float32_t omega2;
+    
+    // 使用DSP库的乘法函数计算ω²
+    arm_mult_f32(&omega, &omega, &omega2, 1);
+    
+    // 计算实部：real_part = 1.0 - 10^-8*ω²
+    float32_t real_part_temp = FILTER_C1_F32 * omega2;
+    float32_t real_part = 1.0f - real_part_temp;
+    
+    // 计算虚部：imag_part = 3*10^-4*ω
+    float32_t imag_part = FILTER_C2_F32 * omega;
+    
+    // 计算实部和虚部的平方
+    float32_t real_squared, imag_squared;
+    arm_mult_f32(&real_part, &real_part, &real_squared, 1);
+    arm_mult_f32(&imag_part, &imag_part, &imag_squared, 1);
+    
+    // 计算平方和
+    float32_t sum_of_squares;
+    arm_add_f32(&real_squared, &imag_squared, &sum_of_squares, 1);
+    
+    // 使用DSP库的快速平方根函数
+    float32_t magnitude_denominator;
+    arm_sqrt_f32(sum_of_squares, &magnitude_denominator);
+    
+    // 计算传递函数幅值：|H(jω)| = 5.13 / sqrt(...)
+    float32_t magnitude = FILTER_GAIN_F32 / magnitude_denominator;
+    
+    // 计算所需的输入幅值：required_input = 2.0 / magnitude
+    float32_t required_input = TARGET_OUTPUT_V_F32 / magnitude;
+    
+    // 使用DSP库的限幅函数
+    float32_t result;
+    if(required_input > MAX_COMPENSATION_F32) 
+        result = MAX_COMPENSATION_F32;
+    else if(required_input < MIN_COMPENSATION_F32) 
+        result = MIN_COMPENSATION_F32;
+    else 
+        result = required_input;
+    
+    return result;
+}
+
+// 优化的正弦波表生成函数
 void generate_sin_table(float amp)
 {
-    // 限制幅值范围在0-3.3V之间
+    // 限制幅值范围
     if(amp > 3.3f) amp = 3.3f;
     if(amp < 0.0f) amp = 0.0f;
     
-    // 使用双精度常量进行计算，提高精度
-    const double dac_scale = 4095.0 / 3.3;
-    const double angle_step = 2.0 * PI_PRECISE / SIN_Value_Length;
-    const double amp_double = (double)amp;
+    // 使用DSP库的常量和函数
+    const float32_t dac_scale = 4095.0f / 3.3f;
+    const float32_t angle_step = TWO_PI_F32 / (float32_t)SIN_Value_Length;
+    const float32_t center_voltage = 1.65f;
+    const float32_t peak_voltage = amp * 0.5f;
     
-    // 设置中心偏置电压，避免信号接近0V
-    const double center_voltage = 1.65; // 中心电压1.65V (3.3V/2)
-    const double peak_voltage = amp_double / 2.0; // 峰值电压
+    float32_t angles[SIN_Value_Length];
+    float32_t sin_values[SIN_Value_Length];
     
+    // 生成角度数组
     for(int i = 0; i < SIN_Value_Length; i++)
     {
-        // 使用双精度角度计算
-        double angle = angle_step * i;
+        angles[i] = angle_step * (float32_t)i;
+    }
+    
+    // 使用DSP库批量计算正弦值（如果可用）
+    // 注意：某些版本的CMSIS-DSP库可能没有arm_sin_f32批量函数
+    // 这里使用循环调用单个sin函数
+    for(int i = 0; i < SIN_Value_Length; i++)
+    {
+        // 使用标准库的sinf函数（单精度）
+        sin_values[i] = sinf(angles[i]);
         
-        // 使用双精度sin函数计算正弦值，范围 -1 到 +1
-        double sin_val = sin(angle);
+        // 计算电压值
+        float32_t voltage = center_voltage + sin_values[i] * peak_voltage;
         
-        // 中心偏置的正弦波：center ± peak
-        // 电压范围：(1.65 - amp/2) 到 (1.65 + amp/2)
-        double voltage = center_voltage + sin_val * peak_voltage;
+        // 限制电压范围
+        if(voltage > 3.3f) voltage = 3.3f;
+        if(voltage < 0.0f) voltage = 0.0f;
         
-        // 确保电压在有效范围内
-        if(voltage > 3.3) voltage = 3.3;
-        if(voltage < 0.0) voltage = 0.0;
+        // 转换为DAC值
+        float32_t dac_float = voltage * dac_scale + 0.5f;
+        uint16_t dac_value = (uint16_t)dac_float;
         
-        // 转换为DAC数字值，使用双精度计算后四舍五入
-        double dac_double = voltage * dac_scale + 0.5;
-        uint16_t dac_value = (uint16_t)dac_double;
-        
-        // 确保值在有效范围内 (0-4095)
+        // 确保值在有效范围内
         if(dac_value > 4095) dac_value = 4095;
         
         SIN_Value[i] = dac_value;
     }
 }
-
 
 
 // void AD9220_DATAHandle(void)
@@ -535,31 +596,7 @@ void Model_2(void)
 	
 }
 
-// 计算H(s)滤波器在给定频率下的幅值补偿
-// H(s) = 5/(10^-8*s^2 + 3*10^-4*s + 1)
-float calculate_amplitude_compensation_precise(uint32_t frequency)
-{
-    // 使用双精度提高计算精度
-    double omega = 2.0 * PI_PRECISE * (double)frequency; // 角频率 ω = 2πf
-    double omega2 = omega * omega;
-    
-    // H(jω)的模长计算，使用双精度
-    // |H(jω)| = 5 / sqrt((1 - 10^-8*ω^2)^2 + (3*10^-4*ω)^2)
-    double real_part = 1.0 - 1e-8 * omega2;
-    double imag_part = 3e-4 * omega;
-    
-    double magnitude = 5.13 / sqrt(real_part * real_part + imag_part * imag_part);
-    
-    // 目标输出幅值为2V，需要的输入幅值补偿
-    double required_input = 2.0 / magnitude;
-    
-    // 转换回单精度并限制补偿范围，避免DAC饱和
-    float result = (float)required_input;
-    if(result > 3.2f) result = 3.2f;
-    if(result < 0.1f) result = 0.1f;
-    
-    return result;
-}
+
 
 // 在Model_3函数中，修改switch (control_mode)部分：
 

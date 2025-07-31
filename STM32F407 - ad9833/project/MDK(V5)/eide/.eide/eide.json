@@ -212,6 +212,9 @@
           },
           {
             "path": "../../../DSP_FFT/table_fft.h"
+          },
+          {
+            "path": "../../../DSP_FFT/arm_cortexM4lf_math.lib"
           }
         ],
         "folders": []
@@ -475,7 +478,8 @@
           "ARM_MATH_CM4",
           "__CC_ARM",
           "ARM_MATH_MATRIX_CHECK",
-          "ARM_MATH_ROUNDING"
+          "ARM_MATH_ROUNDING",
+          "__FPU_PRESENT=1"
         ]
       },
       "builderOptions": {
@@ -502,9 +506,9 @@
               ".bin"
             ],
             "output-format": "elf",
-            "xo-base": "",
             "ro-base": "0x08000000",
-            "rw-base": "0x20000000"
+            "rw-base": "0x20000000",
+            "misc-controls": "--library_type=microlib"
           }
         }
       }
