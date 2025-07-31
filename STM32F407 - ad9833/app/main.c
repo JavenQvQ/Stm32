@@ -203,7 +203,7 @@ int main(void)
 	//uart2_init(115200U);
 	//ADC_FFT_Init();//ADC初始化
     //AD9220_DCMIDMA_Config();//AD9220初始化
-	//AD9833_Init_GPIO();//AD9833初始化GPIO
+	AD9833_Init_GPIO();//AD9833初始化GPIO
 	// AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
 	// AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
 
@@ -394,138 +394,230 @@ void Model_2(void)
 // H(s) = 5/(10^-8*s^2 + 3*10^-4*s + 1)
 float calculate_amplitude_compensation(uint32_t frequency)
 {
-    float omega = 2.0f * 3.14159f * frequency; // 角频率 ω = 2πf
-    float omega2 = omega * omega;
+    // 使用双精度提高计算精度
+    double omega = 2.0 * PI_PRECISE * (double)frequency; // 角频率 ω = 2πf
+    double omega2 = omega * omega;
     
-    // H(jω)的模长计算
+    // H(jω)的模长计算，使用双精度
     // |H(jω)| = 5 / sqrt((1 - 10^-8*ω^2)^2 + (3*10^-4*ω)^2)
-    float real_part = 1.0f - 1e-8f * omega2;
-    float imag_part = 3e-4f * omega;
+    double real_part = 1.0 - 1e-8 * omega2;
+    double imag_part = 3e-4 * omega;
     
-    float magnitude = 5.0f / sqrtf(real_part * real_part + imag_part * imag_part);
+    double magnitude = 5.0 / sqrt(real_part * real_part + imag_part * imag_part);
     
     // 目标输出幅值为2V，需要的输入幅值补偿
-    float required_input = 2.0f / magnitude;
+    double required_input = 2.0 / magnitude;
     
-    // 限制补偿范围，避免DAC饱和
-    if(required_input > 3.2f) required_input = 3.2f;
-    if(required_input < 0.1f) required_input = 0.1f;
+    // 转换回单精度并限制补偿范围，避免DAC饱和
+    float result = (float)required_input;
+    if(result > 3.2f) result = 3.2f;
+    if(result < 0.1f) result = 0.1f;
     
-    return required_input;
+    return result;
 }
+
+// 在Model_3函数中，修改switch (control_mode)部分：
 
 void Model_3(void)
 {
-    static uint32_t dac_frequency = 100;      // DAC输出频率，初始1kHz
-    static uint32_t frequency_step = 100;      // 频率步长，初始100Hz
-    static uint32_t max_frequency = 3000;      // 最大频率3kHz
-    static uint32_t min_frequency = 100;       // 最小频率100Hz
-    static uint8_t step_index = 0;             // 步长选择索引
-    static uint32_t step_values[3] = {10, 100, 500}; // 步长选择：10Hz, 100Hz, 500Hz
-    static uint8_t initialized = 0;            // 初始化标志
+    static uint32_t dac_frequency = 100;      // DAC输出频率，初始100Hz
+    static uint32_t frequency_step = 100;     // 频率步长，固定100Hz
+    static uint32_t max_frequency = 3000;     // 最大频率3kHz
+    static uint32_t min_frequency = 100;      // 最小频率100Hz
+    
+    // 新增电压控制变量
+    static float target_voltage = 2.0f;      // 目标输出电压峰峰值，初始2V
+    static float voltage_step = 0.1f;        // 电压步长0.1V
+    static float max_voltage = 2.0f;         // 最大电压2V
+    static float min_voltage = 1.0f;         // 最小电压1V
+    
+    static uint8_t control_mode = 0;         // 控制模式：0=电压控制，1=频率控制
+    static uint8_t initialized = 0;         // 初始化标志
     
     // 首次运行时初始化DAC
     if (!initialized)
     {
-        // 根据H(s)滤波器特性，计算幅值补偿
+        // 使用优化的计算函数
         float amplitude_compensation = calculate_amplitude_compensation(dac_frequency);
         
         // 使用电压幅值生成正弦波表
         generate_sin_table(amplitude_compensation);
         
-        DAC_Configuration(SIN_Value, SIN_Value_Length); // 不再需要额外幅值调整
+        DAC_Configuration(SIN_Value, SIN_Value_Length);
         Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
         
-        printf("Model_3: DAC Signal Generator initialized\r\n");
-        printf("Frequency: %lu Hz (Range: 100Hz-3kHz)\r\n", dac_frequency);
-        printf("H(s) = 5/(10^-8*s^2 + 3*10^-4*s + 1)\r\n");
-        printf("Input amplitude: %.2fV, Target output: 2V\r\n", amplitude_compensation);
-        printf("KEY0: +freq, KEY1: -freq, KEY2: step, WakeUp: exit\r\n");
+        printf("Model_3 initialized. Mode: VOLTAGE control\r\n");
+        printf("Freq: %lu Hz, Target: %.1fV, Input: %.3fV\r\n", 
+               dac_frequency, target_voltage, amplitude_compensation);
+        printf("KEY1: switch mode, KEY0/KEY2: adjust value, WakeUp: exit\r\n");
         initialized = 1;
     }
-    
-    // KEY0: 频率增加
-    if(KEY0_interrupt_flag)
+
+    while(1)
     {
-        KEY0_interrupt_flag = 0; // 清除中断标志
-        
-        if(dac_frequency + frequency_step <= max_frequency)
+        // KEY1: 切换控制模式（电压/频率）
+        if(KEY1_interrupt_flag)
         {
-            dac_frequency += frequency_step;
+            KEY1_interrupt_flag = 0; // 清除中断标志
             
-            // 重新计算幅值补偿
-            float amplitude_compensation = calculate_amplitude_compensation(dac_frequency);
+            control_mode = !control_mode; // 切换模式
             
-            // 重新生成正弦波表
-            generate_sin_table(amplitude_compensation);
-            
-            // 重新配置定时器（DAC不需要重新配置，因为数据已更新）
-            Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
-            
-            printf("Freq+: %lu Hz, Input: %.2fV, Target: 2V, Step: %lu Hz\r\n", 
-                   dac_frequency, amplitude_compensation, frequency_step);
+            if(control_mode == 0)
+            {
+                printf("Switched to VOLTAGE control mode\r\n");
+                printf("Current: %.1fV (Range: %.1f-%.1fV, Step: %.1fV)\r\n", 
+                       target_voltage, min_voltage, max_voltage, voltage_step);
+            }
+            else
+            {
+                printf("Switched to FREQUENCY control mode\r\n");
+                printf("Current: %lu Hz (Range: %lu-%lu Hz, Step: %lu Hz)\r\n", 
+                       dac_frequency, min_frequency, max_frequency, frequency_step);
+            }
         }
-        else
+
+        // 根据控制模式处理按键
+        switch (control_mode)
         {
-            printf("Maximum frequency reached: %lu Hz\r\n", max_frequency);
+            case 0: // 电压控制模式
+            {
+                // KEY2: 增加电压
+                if(KEY2_interrupt_flag)
+                {
+                    KEY2_interrupt_flag = 0;
+                    
+                    if(target_voltage + voltage_step <= max_voltage + 0.001f) // 浮点数比较容错
+                    {
+                        target_voltage += voltage_step;
+                        
+                        // 使用优化的计算函数，基于新的目标电压重新计算
+                        float amplitude_compensation = (target_voltage / 2.0f) * calculate_amplitude_compensation(dac_frequency);
+                        
+                        // 限制补偿范围
+                        if(amplitude_compensation > 3.2f) amplitude_compensation = 3.2f;
+                        if(amplitude_compensation < 0.1f) amplitude_compensation = 0.1f;
+                        
+                        // 重新生成正弦波表
+                        generate_sin_table(amplitude_compensation);
+                        
+                        printf("Voltage+: %.1fV, Freq: %lu Hz, Input: %.3fV\r\n", 
+                               target_voltage, dac_frequency, amplitude_compensation);
+                    }
+                    else
+                    {
+                        printf("Maximum voltage reached: %.1fV\r\n", max_voltage);
+                    }
+                }
+                
+                // KEY0: 减少电压
+                if(KEY0_interrupt_flag)
+                {
+                    KEY0_interrupt_flag = 0;
+                    
+                    if(target_voltage >= min_voltage + voltage_step - 0.001f) // 浮点数比较容错
+                    {
+                        target_voltage -= voltage_step;
+                        
+                        // 使用优化的计算函数，基于新的目标电压重新计算
+                        float amplitude_compensation = (target_voltage / 2.0f) * calculate_amplitude_compensation(dac_frequency);
+                        
+                        // 限制补偿范围
+                        if(amplitude_compensation > 3.2f) amplitude_compensation = 3.2f;
+                        if(amplitude_compensation < 0.1f) amplitude_compensation = 0.1f;
+                        
+                        // 重新生成正弦波表
+                        generate_sin_table(amplitude_compensation);
+                        
+                        printf("Voltage-: %.1fV, Freq: %lu Hz, Input: %.3fV\r\n", 
+                               target_voltage, dac_frequency, amplitude_compensation);
+                    }
+                    else
+                    {
+                        printf("Minimum voltage reached: %.1fV\r\n", min_voltage);
+                    }
+                }
+                break;
+            }
+            
+            case 1: // 频率控制模式
+            {
+                // KEY2: 增加频率
+                if(KEY2_interrupt_flag)
+                {
+                    KEY2_interrupt_flag = 0;
+                    
+                    if(dac_frequency + frequency_step <= max_frequency)
+                    {
+                        dac_frequency += frequency_step;
+                        
+                        // 使用优化的计算函数
+                        float amplitude_compensation = (target_voltage / 2.0f) * calculate_amplitude_compensation(dac_frequency);
+                        
+                        // 限制补偿范围
+                        if(amplitude_compensation > 3.2f) amplitude_compensation = 3.2f;
+                        if(amplitude_compensation < 0.1f) amplitude_compensation = 0.1f;
+                        
+                        // 重新生成正弦波表和配置定时器
+                        generate_sin_table(amplitude_compensation);
+                        Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
+                        
+                        printf("Freq+: %lu Hz, Target: %.1fV, Input: %.3fV\r\n", 
+                               dac_frequency, target_voltage, amplitude_compensation);
+                    }
+                    else
+                    {
+                        printf("Maximum frequency reached: %lu Hz\r\n", max_frequency);
+                    }
+                }
+                
+                // KEY0: 减少频率
+                if(KEY0_interrupt_flag)
+                {
+                    KEY0_interrupt_flag = 0;
+                    
+                    if(dac_frequency >= min_frequency + frequency_step)
+                    {
+                        dac_frequency -= frequency_step;
+                        
+                        // 使用优化的计算函数
+                        float amplitude_compensation = (target_voltage / 2.0f) * calculate_amplitude_compensation(dac_frequency);
+                        
+                        // 限制补偿范围
+                        if(amplitude_compensation > 3.2f) amplitude_compensation = 3.2f;
+                        if(amplitude_compensation < 0.1f) amplitude_compensation = 0.1f;
+                        
+                        // 重新生成正弦波表和配置定时器
+                        generate_sin_table(amplitude_compensation);
+                        Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
+                        
+                        printf("Freq-: %lu Hz, Target: %.1fV, Input: %.3fV\r\n", 
+                               dac_frequency, target_voltage, amplitude_compensation);
+                    }
+                    else
+                    {
+                        printf("Minimum frequency reached: %lu Hz\r\n", min_frequency);
+                    }
+                }
+                break;
+            }
+            
+            default:
+                break;
         }
-    }
-    
-    // KEY1: 频率减少
-    if(KEY1_interrupt_flag)
-    {
-        KEY1_interrupt_flag = 0; // 清除中断标志
         
-        if(dac_frequency >= min_frequency + frequency_step)
+        // 退出条件：使用WakeUp按键
+        if(Key_WakeUp_interrupt_flag)
         {
-            dac_frequency -= frequency_step;
+            Key_WakeUp_interrupt_flag = 0; // 清除中断标志
+            printf("Exit Model_3\r\n");
             
-            // 重新计算幅值补偿
-            float amplitude_compensation = calculate_amplitude_compensation(dac_frequency);
-            
-            // 重新生成正弦波表
-            generate_sin_table(amplitude_compensation);
-            
-            // 重新配置定时器
-            Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
-            
-            printf("Freq-: %lu Hz, Input: %.2fV, Target: 2V, Step: %lu Hz\r\n", 
-                   dac_frequency, amplitude_compensation, frequency_step);
+            // 停止DAC输出
+            TIM_Cmd(TIM4, DISABLE);
+            DAC_Cmd(DAC_Channel_2, DISABLE);
+            return; // 退出函数
         }
-        else
-        {
-            printf("Minimum frequency reached: %lu Hz\r\n", min_frequency);
-        }
-    }
-    
-    // KEY2: 切换步长
-    if(KEY2_interrupt_flag)
-    {
-        KEY2_interrupt_flag = 0; // 清除中断标志
-        
-        step_index = (step_index + 1) % 3; // 循环切换0,1,2
-        frequency_step = step_values[step_index];
-        
-        const char* step_names[3] = {"10Hz", "100Hz", "500Hz"};
-        printf("Step changed to: %s (%lu Hz)\r\n", 
-               step_names[step_index], frequency_step);
-    }
-    
-    // 退出条件：使用WakeUp按键
-    if(Key_WakeUp_interrupt_flag)
-    {
-        Key_WakeUp_interrupt_flag = 0; // 清除中断标志
-        printf("Exit Model_3\r\n");
-        
-        // 停止DAC输出
-        TIM_Cmd(TIM4, DISABLE);
-        DAC_Cmd(DAC_Channel_2, DISABLE);
-        return; // 退出函数
     }
 }
-
-
-
 
 
 void Model_0(void)

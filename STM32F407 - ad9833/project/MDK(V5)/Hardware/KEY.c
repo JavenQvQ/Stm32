@@ -122,7 +122,7 @@ void EXTI2_IRQHandler(void)
         delay_ms(10);
         if(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_2) == Bit_RESET)
         {
-            KEY1_interrupt_flag = 1;
+            KEY2_interrupt_flag = 1;
         }
         EXTI_ClearITPendingBit(EXTI_Line2);
     }
@@ -137,7 +137,7 @@ void EXTI3_IRQHandler(void)
         delay_ms(10);
         if(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_3) == Bit_RESET)
         {
-			KEY2_interrupt_flag = 1;
+			KEY1_interrupt_flag = 1;
         }
         EXTI_ClearITPendingBit(EXTI_Line3);
     }
