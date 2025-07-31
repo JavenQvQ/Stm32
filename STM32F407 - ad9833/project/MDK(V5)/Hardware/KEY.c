@@ -9,10 +9,10 @@
 #include "ad9220.h"
 
 // 添加中断标志变量
-volatile uint8_t pe2_interrupt_flag = 0;
-volatile uint8_t pe3_interrupt_flag = 0;
-volatile uint8_t pe4_interrupt_flag = 0;
-volatile uint8_t pa0_interrupt_flag = 0;
+volatile uint8_t KEY0_interrupt_flag = 0;
+volatile uint8_t KEY1_interrupt_flag = 0;
+volatile uint8_t KEY2_interrupt_flag = 0;
+volatile uint8_t Key_WakeUp_interrupt_flag = 0;
 
 // GPIO和外部中断初始化函数
 void EXTI_Key_Init(void)
@@ -103,12 +103,11 @@ void EXTI0_IRQHandler(void)
 {
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
-        // 简单消抖延时
-        delay_ms(10);
+        delay_ms(10); // 消抖
         if(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0) == Bit_SET)
         {
-            pa0_interrupt_flag = 1;
-            printf("PA0 interrupt triggered!\r\n");
+            Key_WakeUp_interrupt_flag = 1; // 
+            printf("WakeUp KEY pressed (PA0)\r\n");
         }
         EXTI_ClearITPendingBit(EXTI_Line0);
     }
@@ -123,8 +122,7 @@ void EXTI2_IRQHandler(void)
         delay_ms(10);
         if(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_2) == Bit_RESET)
         {
-            pe2_interrupt_flag = 1;
-            printf("PE2 interrupt triggered!\r\n");
+            KEY1_interrupt_flag = 1;
         }
         EXTI_ClearITPendingBit(EXTI_Line2);
     }
@@ -139,8 +137,7 @@ void EXTI3_IRQHandler(void)
         delay_ms(10);
         if(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_3) == Bit_RESET)
         {
-            pe3_interrupt_flag = 1;
-            printf("PE3 interrupt triggered!\r\n");
+			KEY2_interrupt_flag = 1;
         }
         EXTI_ClearITPendingBit(EXTI_Line3);
     }
@@ -156,8 +153,7 @@ void EXTI4_IRQHandler(void)
         delay_ms(10);
         if(GPIO_ReadInputDataBit(GPIOE, GPIO_Pin_4) == Bit_RESET)
         {
-            pe4_interrupt_flag = 1;
-            printf("PE4 interrupt triggered!\r\n");
+			KEY0_interrupt_flag = 1;
         }
         EXTI_ClearITPendingBit(EXTI_Line4);
     }
@@ -166,35 +162,6 @@ void EXTI4_IRQHandler(void)
 // 中断标志处理函数
 void EXTI_Flag_Handle(void)
 {
-    if(pa0_interrupt_flag)
-    {
-        pa0_interrupt_flag = 0;
-        // 处理PA0中断事件
-        printf("Processing PA0 interrupt event\r\n");
-        // 在这里添加您的处理代码
-    }
-    
-    if(pe2_interrupt_flag)
-    {
-        pe2_interrupt_flag = 0;
-        // 处理PE2中断事件
-        printf("Processing PE2 interrupt event\r\n");
-        // 在这里添加您的处理代码
-    }
-    
-    if(pe3_interrupt_flag)
-    {
-        pe3_interrupt_flag = 0;
-        // 处理PE3中断事件
-        printf("Processing PE3 interrupt event\r\n");
-        // 在这里添加您的处理代码
-    }
-    
-    if(pe4_interrupt_flag)
-    {
-        pe4_interrupt_flag = 0;
-        // 处理PE4中断事件
-        printf("Processing PE4 interrupt event\r\n");
-        // 在这里添加您的处理代码
-    }
+
+
 }

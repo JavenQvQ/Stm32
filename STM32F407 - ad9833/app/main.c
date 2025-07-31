@@ -5,7 +5,7 @@
 #include "OLED.h"//使用PB14SCL PB15SDA
 #include "FFT.h"//使用arm_math.h
 #include "ADC.h"//使用PB01和定时器3以及DMA2_Stream0
-#include "DAC.h"//使用PA04和TIM4以及DMA1_Stream5
+#include "DAC.h"//使用PA05和TIM4以及DMA1_Stream5
 #include "ad9220_dcmi.h"//使用DCMI接口和DMA2_Stream1
 						//GPIOA: 3个引脚（PA2, PA4, PA6）
 						//GPIOB: 3个引脚（PB5, PB6, PB7）
@@ -24,7 +24,17 @@ float filter5(float *filter_buf); //中位值平均滤波法
 extern uint8_t ADC1_DMA_Flag;//ADC采集完成数据标志
 extern u16 ADC1_ConvertedValue[ ADC1_DMA_Size ];//ADC数据
 extern uint32_t adc_convert_value[ADC_DMA_DATA_LENGTH]; //存储从 DCMI 接收来的数据
-
+uint16_t Model = 0; // 模型选择变量
+extern uint8_t KEY0_interrupt_flag ;
+extern uint8_t KEY1_interrupt_flag ;
+extern uint8_t KEY2_interrupt_flag ;
+extern uint8_t Key_WakeUp_interrupt_flag ;
+void Model_0(void); // 模型0函数声明
+void Model_1(void); // 模型1函数声明
+void Model_2(void); // 模型2函数声明
+void Model_3(void); // 模型3函数声明
+void Model_4(void); // 模型4函数声明
+void Model_5(void); // 模型5函数声明
 
 #define SIN_Value_Length 64  // 增加采样点数提高波形质量
 // 标准正弦波数据 (12位DAC，0-4095范围，中心值2048)
@@ -136,6 +146,10 @@ uint16_t SIN_Value[SIN_Value_Length] = {
 //	}
 //}
  
+
+
+
+
 //主函数
 int main(void)
 {
@@ -146,10 +160,10 @@ int main(void)
 	EXTI_Key_Init();//按键初始化
 	//uart2_init(115200U);
 	//ADC_FFT_Init();//ADC初始化
-    AD9220_DCMIDMA_Config();//AD9220初始化
+    //AD9220_DCMIDMA_Config();//AD9220初始化
 	AD9833_Init_GPIO();//AD9833初始化GPIO
-	AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
-	AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
+	// AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
+	// AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
 
 
 
@@ -163,6 +177,7 @@ int main(void)
 		//OLED_Refresh();
 		//AD9220_DATAHandle();//AD9220数据处理函数
 		//printf("32\n");
+		Model_1(); // 调用模型1函数
 		
 
 
@@ -233,12 +248,105 @@ float filter5(float *filter_buf)
 
 
 
-void timu1(void)
+void Model_1(void)
 {
-	const uint16_t fre;
-	const uint16_t AMP;//正弦波频率和幅度
-
-	
-
-
+    static uint32_t current_frequency = 3000;  // 当前频率，初始3kHz
+    static uint32_t frequency_step = 100;      // 频率步长，初始100Hz
+    static uint32_t max_frequency = 5000000;   // 最大频率5MHz (修改为5M)
+    static uint32_t min_frequency = 100;       // 最小频率100Hz
+    // 步长选择（0=100Hz, 1=1kHz, 2=10kHz）
+    static uint8_t step_index = 0;
+    static uint32_t step_values[3] = {100, 1000, 10000};
+    static uint8_t initialized = 0;            // 初始化标志
+    
+    // 首次运行时初始化AD9833
+    if (!initialized)
+    {
+        AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
+        AD9833_AmpSet(128);
+        printf("AD9833 initialized. Frequency: %lu Hz (Max: 5MHz)\r\n", current_frequency);
+        printf("KEY0: +freq, KEY1: -freq, KEY2: step, WakeUp: exit\r\n");
+        initialized = 1;
+    }
+    
+    // KEY0: 频率增加
+    if(KEY0_interrupt_flag)
+    {
+        KEY0_interrupt_flag = 0; // 清除中断标志
+        
+        if(current_frequency + frequency_step <= max_frequency)
+        {
+            current_frequency += frequency_step;
+            AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
+            printf("Frequency increased to: %lu Hz, Step: %lu Hz\r\n", 
+                   current_frequency, frequency_step);
+        }
+        else
+        {
+            printf("Maximum frequency reached: %lu Hz (5MHz)\r\n", max_frequency);
+        }
+    }
+    
+    // KEY1: 频率减少
+    if(KEY1_interrupt_flag)
+    {
+        KEY1_interrupt_flag = 0; // 清除中断标志
+        
+        if(current_frequency >= min_frequency + frequency_step)
+        {
+            current_frequency -= frequency_step;
+            AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
+            printf("Frequency decreased to: %lu Hz, Step: %lu Hz\r\n", 
+                   current_frequency, frequency_step);
+        }
+        else
+        {
+            printf("Minimum frequency reached: %lu Hz\r\n", min_frequency);
+        }
+    }
+    
+    // KEY2: 切换步长
+    if(KEY2_interrupt_flag)
+    {
+        KEY2_interrupt_flag = 0; // 清除中断标志
+        
+        step_index = (step_index + 1) % 3; // 循环切换0,1,2
+        frequency_step = step_values[step_index];
+        
+        const char* step_names[3] = {"100Hz", "1kHz", "10kHz"};
+        printf("Step changed to: %s (%lu Hz)\r\n", 
+               step_names[step_index], frequency_step);
+    }
+    
+    // 退出条件：使用WakeUp按键切换模式
+    if(Key_WakeUp_interrupt_flag)
+    {
+        Key_WakeUp_interrupt_flag = 0; // 清除中断标志
+        printf("Exit Model_1\r\n");
+        return; // 退出函数
+    }
 }
+
+
+
+
+
+void Model_0(void)
+{
+	switch (Model)
+	{
+		case 1:
+			Model_1();
+			Key_WakeUp_interrupt_flag = 0; //清除中断标志
+			break;
+		case 2:
+			
+			break;
+		case 3:
+			
+			break;
+		default:
+			break;
+	}
+}
+
