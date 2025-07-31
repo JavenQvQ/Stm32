@@ -7,29 +7,26 @@
 //PA4和DMA1_Stream5_CH7连接
 //TIM4触发DAC,需要配置TIM4
 //DAC输出频率为fre/DA1_Value_Lenth
-void DAC_Configuration(uint16_t *DA1_Value, uint32_t DA1_Value_Length, float amplitude)
+// ...existing code...
+
+//DAC输出配置
+//PA5和DMA1_Stream6_CH7连接
+//TIM4触发DAC,需要配置TIM4
+//DAC输出频率为fre/DA1_Value_Length
+// ...existing code...
+
+//DAC输出配置
+//PA5和DMA1_Stream6_CH7连接
+//TIM4触发DAC,需要配置TIM4
+//DAC输出频率为fre/DA1_Value_Length
+void DAC_Configuration(uint16_t *DA1_Value, uint32_t DA1_Value_Length)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
     DAC_InitTypeDef DAC_InitStructure;
     DMA_InitTypeDef DMA_InitStructure;
-    uint32_t i;
-    float amplitude_digital_f; // 使用浮点数变量
     
-    // 将幅值从0-3.3V转换为0-4095数字值（使用浮点数计算）
-    if(amplitude > 3.3f) amplitude = 3.3f;
-    if(amplitude < 0.0f) amplitude = 0.0f;
-    amplitude_digital_f = amplitude * 4095.0f / 3.3f;
-    
-    // 根据幅值调整DA1_Value数组（使用浮点数计算提高精度）
-    for(i = 0; i < DA1_Value_Length; i++)
-    {
-        // 使用浮点数计算，提高精度
-        float temp_f = (float)DA1_Value[i] * amplitude_digital_f / 4095.0f;
-        DA1_Value[i] = (uint16_t)(temp_f + 0.5f); // 四舍五入
-        
-        // 确保不超出DAC范围
-        if(DA1_Value[i] > 4095) DA1_Value[i] = 4095;
-    }
+    // 取消幅值调整，直接使用原始数据
+    // 不再修改DA1_Value数组的内容
     
     // 使能时钟
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -42,8 +39,7 @@ void DAC_Configuration(uint16_t *DA1_Value, uint32_t DA1_Value_Length, float amp
     GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    // DMA配置需要更改为Channel 2对应的Stream
-    // DAC Channel 2 使用 DMA1_Stream6_CH7
+    // DMA配置 - DAC Channel 2 使用 DMA1_Stream6_CH7
     DMA_Cmd(DMA1_Stream6, DISABLE);
     while(DMA_GetCmdStatus(DMA1_Stream6) != DISABLE);
     
@@ -63,7 +59,7 @@ void DAC_Configuration(uint16_t *DA1_Value, uint32_t DA1_Value_Length, float amp
     DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
     DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
     DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&DAC->DHR12R2;
-    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)DA1_Value;  // 修正变量名
+    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)DA1_Value;
     DMA_Init(DMA1_Stream6, &DMA_InitStructure);
 
     // 配置DAC Channel 2
@@ -73,15 +69,18 @@ void DAC_Configuration(uint16_t *DA1_Value, uint32_t DA1_Value_Length, float amp
     DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
     DAC_Init(DAC_Channel_2, &DAC_InitStructure);
     
-   // 设置初始值（根据幅值调整，使用浮点数计算）
-    uint16_t initial_value = (uint16_t)(amplitude_digital_f / 2.0f + 0.5f);  // 中间值，四舍五入
-    DAC_SetChannel2Data(DAC_Align_12b_R, initial_value);
+    // 设置初始值为中间值
+    DAC_SetChannel2Data(DAC_Align_12b_R, 2048);
     
     // 启用DAC和DMA
     DAC_Cmd(DAC_Channel_2, ENABLE);
     DAC_DMACmd(DAC_Channel_2, ENABLE);
     DMA_Cmd(DMA1_Stream6, ENABLE);
+    
 }
+
+
+
 
 void Tim4_Configuration(uint32_t Fre, uint32_t DA1_Value_Length)
 {	    

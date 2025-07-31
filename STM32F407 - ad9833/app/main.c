@@ -36,14 +36,56 @@ void Model_3(void); // 模型3函数声明
 void Model_4(void); // 模型4函数声明
 void Model_5(void); // 模型5函数声明
 
-#define SIN_Value_Length 64  // 增加采样点数提高波形质量
+#define SIN_Value_Length 128  // 增加采样点数提高波形质量
 // 标准正弦波数据 (12位DAC，0-4095范围，中心值2048)
-uint16_t SIN_Value[SIN_Value_Length] = {
-    2048, 2248, 2447, 2642, 2831, 3013, 3185, 3346, 3495, 3630, 3750, 3853, 3939, 4007, 4056, 4085,
-    4095, 4085, 4056, 4007, 3939, 3853, 3750, 3630, 3495, 3346, 3185, 3013, 2831, 2642, 2447, 2248,
-    2048, 1847, 1648, 1453, 1264, 1082, 910, 749, 600, 465, 345, 242, 156, 88, 39, 10,
-    0, 10, 39, 88, 156, 242, 345, 465, 600, 749, 910, 1082, 1264, 1453, 1648, 1847
-};
+uint16_t SIN_Value[SIN_Value_Length];
+
+
+#define PI_PRECISE 3.141592653589793
+
+void generate_sin_table(float amp)
+{
+    // 限制幅值范围在0-3.3V之间
+    if(amp > 3.3f) amp = 3.3f;
+    if(amp < 0.0f) amp = 0.0f;
+    
+    // 使用双精度常量进行计算，提高精度
+    const double dac_scale = 4095.0 / 3.3;
+    const double angle_step = 2.0 * PI_PRECISE / SIN_Value_Length;
+    const double amp_double = (double)amp;
+    
+    // 设置中心偏置电压，避免信号接近0V
+    const double center_voltage = 1.65; // 中心电压1.65V (3.3V/2)
+    const double peak_voltage = amp_double / 2.0; // 峰值电压
+    
+    for(int i = 0; i < SIN_Value_Length; i++)
+    {
+        // 使用双精度角度计算
+        double angle = angle_step * i;
+        
+        // 使用双精度sin函数计算正弦值，范围 -1 到 +1
+        double sin_val = sin(angle);
+        
+        // 中心偏置的正弦波：center ± peak
+        // 电压范围：(1.65 - amp/2) 到 (1.65 + amp/2)
+        double voltage = center_voltage + sin_val * peak_voltage;
+        
+        // 确保电压在有效范围内
+        if(voltage > 3.3) voltage = 3.3;
+        if(voltage < 0.0) voltage = 0.0;
+        
+        // 转换为DAC数字值，使用双精度计算后四舍五入
+        double dac_double = voltage * dac_scale + 0.5;
+        uint16_t dac_value = (uint16_t)dac_double;
+        
+        // 确保值在有效范围内 (0-4095)
+        if(dac_value > 4095) dac_value = 4095;
+        
+        SIN_Value[i] = dac_value;
+    }
+}
+
+
 
 // void AD9220_DATAHandle(void)
 // {
@@ -161,14 +203,15 @@ int main(void)
 	//uart2_init(115200U);
 	//ADC_FFT_Init();//ADC初始化
     //AD9220_DCMIDMA_Config();//AD9220初始化
-	AD9833_Init_GPIO();//AD9833初始化GPIO
+	//AD9833_Init_GPIO();//AD9833初始化GPIO
 	// AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
 	// AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
 
 
-
-	//DAC_Configuration(SIN_Value, SIN_Value_Length,0.79);//DAC配置，使用正弦波数据
-	//Tim4_Configuration(1000, SIN_Value_Length);//配置定时器4，频率1000Hz，采样点数为SIN_Value_Length
+	// generate_sin_table(0.2f); // 生成正弦波表，幅值为1.0
+	// DAC_Configuration(SIN_Value, SIN_Value_Length);//DAC配置，使用正弦波数据
+	// Tim4_Configuration(1000, SIN_Value_Length);//配置定时器4，频率1000Hz，采样点数为SIN_Value_Length
+		
 	while(1)
 	{
 
@@ -177,7 +220,7 @@ int main(void)
 		//OLED_Refresh();
 		//AD9220_DATAHandle();//AD9220数据处理函数
 		//printf("32\n");
-		Model_1(); // 调用模型1函数
+		Model_3(); // 调用模型1函数
 		
 
 
@@ -268,7 +311,8 @@ void Model_1(void)
         printf("KEY0: +freq, KEY1: -freq, KEY2: step, WakeUp: exit\r\n");
         initialized = 1;
     }
-    
+	while(1)
+	{
     // KEY0: 频率增加
     if(KEY0_interrupt_flag)
     {
@@ -323,6 +367,159 @@ void Model_1(void)
     {
         Key_WakeUp_interrupt_flag = 0; // 清除中断标志
         printf("Exit Model_1\r\n");
+        return; // 退出函数
+    }
+
+	}
+}
+
+void Model_2(void)
+{
+	generate_sin_table(0.79f); // 生成正弦波表，幅值为0.79V
+	DAC_Configuration(SIN_Value, SIN_Value_Length);//DAC配置，使用正弦波数据
+	Tim4_Configuration(1000, SIN_Value_Length);//配置定时器4，频率1000Hz，采样点数为SIN_Value_Length
+	while(1)
+	{
+		if(Key_WakeUp_interrupt_flag)
+		{
+			Key_WakeUp_interrupt_flag = 0; // 清除中断标志
+			printf("Exit Model_2\r\n");
+			return; // 退出函数
+		}
+	}
+	
+}
+
+// 计算H(s)滤波器在给定频率下的幅值补偿
+// H(s) = 5/(10^-8*s^2 + 3*10^-4*s + 1)
+float calculate_amplitude_compensation(uint32_t frequency)
+{
+    float omega = 2.0f * 3.14159f * frequency; // 角频率 ω = 2πf
+    float omega2 = omega * omega;
+    
+    // H(jω)的模长计算
+    // |H(jω)| = 5 / sqrt((1 - 10^-8*ω^2)^2 + (3*10^-4*ω)^2)
+    float real_part = 1.0f - 1e-8f * omega2;
+    float imag_part = 3e-4f * omega;
+    
+    float magnitude = 5.0f / sqrtf(real_part * real_part + imag_part * imag_part);
+    
+    // 目标输出幅值为2V，需要的输入幅值补偿
+    float required_input = 2.0f / magnitude;
+    
+    // 限制补偿范围，避免DAC饱和
+    if(required_input > 3.2f) required_input = 3.2f;
+    if(required_input < 0.1f) required_input = 0.1f;
+    
+    return required_input;
+}
+
+void Model_3(void)
+{
+    static uint32_t dac_frequency = 100;      // DAC输出频率，初始1kHz
+    static uint32_t frequency_step = 100;      // 频率步长，初始100Hz
+    static uint32_t max_frequency = 3000;      // 最大频率3kHz
+    static uint32_t min_frequency = 100;       // 最小频率100Hz
+    static uint8_t step_index = 0;             // 步长选择索引
+    static uint32_t step_values[3] = {10, 100, 500}; // 步长选择：10Hz, 100Hz, 500Hz
+    static uint8_t initialized = 0;            // 初始化标志
+    
+    // 首次运行时初始化DAC
+    if (!initialized)
+    {
+        // 根据H(s)滤波器特性，计算幅值补偿
+        float amplitude_compensation = calculate_amplitude_compensation(dac_frequency);
+        
+        // 使用电压幅值生成正弦波表
+        generate_sin_table(amplitude_compensation);
+        
+        DAC_Configuration(SIN_Value, SIN_Value_Length); // 不再需要额外幅值调整
+        Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
+        
+        printf("Model_3: DAC Signal Generator initialized\r\n");
+        printf("Frequency: %lu Hz (Range: 100Hz-3kHz)\r\n", dac_frequency);
+        printf("H(s) = 5/(10^-8*s^2 + 3*10^-4*s + 1)\r\n");
+        printf("Input amplitude: %.2fV, Target output: 2V\r\n", amplitude_compensation);
+        printf("KEY0: +freq, KEY1: -freq, KEY2: step, WakeUp: exit\r\n");
+        initialized = 1;
+    }
+    
+    // KEY0: 频率增加
+    if(KEY0_interrupt_flag)
+    {
+        KEY0_interrupt_flag = 0; // 清除中断标志
+        
+        if(dac_frequency + frequency_step <= max_frequency)
+        {
+            dac_frequency += frequency_step;
+            
+            // 重新计算幅值补偿
+            float amplitude_compensation = calculate_amplitude_compensation(dac_frequency);
+            
+            // 重新生成正弦波表
+            generate_sin_table(amplitude_compensation);
+            
+            // 重新配置定时器（DAC不需要重新配置，因为数据已更新）
+            Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
+            
+            printf("Freq+: %lu Hz, Input: %.2fV, Target: 2V, Step: %lu Hz\r\n", 
+                   dac_frequency, amplitude_compensation, frequency_step);
+        }
+        else
+        {
+            printf("Maximum frequency reached: %lu Hz\r\n", max_frequency);
+        }
+    }
+    
+    // KEY1: 频率减少
+    if(KEY1_interrupt_flag)
+    {
+        KEY1_interrupt_flag = 0; // 清除中断标志
+        
+        if(dac_frequency >= min_frequency + frequency_step)
+        {
+            dac_frequency -= frequency_step;
+            
+            // 重新计算幅值补偿
+            float amplitude_compensation = calculate_amplitude_compensation(dac_frequency);
+            
+            // 重新生成正弦波表
+            generate_sin_table(amplitude_compensation);
+            
+            // 重新配置定时器
+            Tim4_Configuration(dac_frequency * SIN_Value_Length, 1);
+            
+            printf("Freq-: %lu Hz, Input: %.2fV, Target: 2V, Step: %lu Hz\r\n", 
+                   dac_frequency, amplitude_compensation, frequency_step);
+        }
+        else
+        {
+            printf("Minimum frequency reached: %lu Hz\r\n", min_frequency);
+        }
+    }
+    
+    // KEY2: 切换步长
+    if(KEY2_interrupt_flag)
+    {
+        KEY2_interrupt_flag = 0; // 清除中断标志
+        
+        step_index = (step_index + 1) % 3; // 循环切换0,1,2
+        frequency_step = step_values[step_index];
+        
+        const char* step_names[3] = {"10Hz", "100Hz", "500Hz"};
+        printf("Step changed to: %s (%lu Hz)\r\n", 
+               step_names[step_index], frequency_step);
+    }
+    
+    // 退出条件：使用WakeUp按键
+    if(Key_WakeUp_interrupt_flag)
+    {
+        Key_WakeUp_interrupt_flag = 0; // 清除中断标志
+        printf("Exit Model_3\r\n");
+        
+        // 停止DAC输出
+        TIM_Cmd(TIM4, DISABLE);
+        DAC_Cmd(DAC_Channel_2, DISABLE);
         return; // 退出函数
     }
 }
