@@ -1,35 +1,28 @@
 #ifndef __OLED_H
 #define __OLED_H 
 
-#include "stm32f4xx.h"
+#include "sys.h"
 #include "stdlib.h"	
-#include <stdio.h>
-#ifndef u8
-#define u8 uint8_t
-#endif
-
-#ifndef u16
-#define u16 uint16_t
-#endif
-
-#ifndef u32
-#define u32 uint32_t
-#endif
-
-//-----------------OLEDç«¯å£å®šä¹‰---------------- 
-
-#define OLED_SCL_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_14)//SCL
-#define OLED_SCL_Set() GPIO_SetBits(GPIOB,GPIO_Pin_14)
-
-#define OLED_SDA_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_15)//DIN
-#define OLED_SDA_Set() GPIO_SetBits(GPIOB,GPIO_Pin_15)
-
-//#define OLED_RES_Clr() GPIO_ResetBits(GPIOD,GPIO_Pin_4)//RES
-//#define OLED_RES_Set() GPIO_SetBits(GPIOD,GPIO_Pin_4)
 
 
-#define OLED_CMD  0	//å†™å‘½ä»¤
-#define OLED_DATA 1	//å†™æ•°æ®
+//-----------------OLED¶Ë¿Ú¶¨Òå---------------- 
+
+#define OLED_SCL_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_8)//SCL -> PB8
+#define OLED_SCL_Set() GPIO_SetBits(GPIOB,GPIO_Pin_8)
+
+#define OLED_SDA_Clr() GPIO_ResetBits(GPIOB,GPIO_Pin_9)//SDA -> PB9
+#define OLED_SDA_Set() GPIO_SetBits(GPIOB,GPIO_Pin_9)
+
+// Èç¹ûÄúµÄOLEDÄ£¿éÓÐRESÒý½Å£¬¿ÉÒÔ±£Áô»ò×¢ÊÍµô
+// #define OLED_RES_Clr() GPIO_ResetBits(GPIOD,GPIO_Pin_4)//RES
+// #define OLED_RES_Set() GPIO_SetBits(GPIOD,GPIO_Pin_4)
+
+#define OLED_CMD  0	//Ð´ÃüÁî
+#define OLED_DATA 1	//Ð´Êý¾Ý
+
+
+#define OLED_CMD  0	//Ð´ÃüÁî
+#define OLED_DATA 1	//Ð´Êý¾Ý
 
 void OLED_ClearPoint(u8 x,u8 y);
 void OLED_ColorTurn(u8 i);
@@ -54,6 +47,6 @@ void OLED_ShowChinese(u8 x,u8 y,u8 num,u8 size1,u8 mode);
 void OLED_ScrollDisplay(u8 num,u8 space,u8 mode);
 void OLED_ShowPicture(u8 x,u8 y,u8 sizex,u8 sizey,u8 BMP[],u8 mode);
 void OLED_Init(void);
-void OLED_ShowFloat(u8 x,u8 y,float num,u8 size1,u8 mode);
+
 #endif
 

@@ -24,7 +24,6 @@ float filter5(float *filter_buf); //中位值平均滤波法
 extern uint8_t ADC1_DMA_Flag;//ADC采集完成数据标志
 extern u16 ADC1_ConvertedValue[ ADC1_DMA_Size ];//ADC数据
 extern uint32_t adc_convert_value[ADC_DMA_DATA_LENGTH]; //存储从 DCMI 接收来的数据
-uint16_t Model = 0; // 模型选择变量
 extern uint8_t KEY0_interrupt_flag ;
 extern uint8_t KEY1_interrupt_flag ;
 extern uint8_t KEY2_interrupt_flag ;
@@ -189,17 +188,18 @@ void generate_sin_table(float amp)
 //}
  
 
-
+uint16_t model = 0; // 模型选择变量	
 
 
 //主函数
 int main(void)
 {
 	board_init();
-	//OLED_Init();
-	
+	OLED_Init();
 	uart1_init(115200U);
 	EXTI_Key_Init();//按键初始化
+	OLED_Init(); // OLED初始化
+	OLED_Clear(); // 清屏
 	//uart2_init(115200U);
 	//ADC_FFT_Init();//ADC初始化
     //AD9220_DCMIDMA_Config();//AD9220初始化
@@ -211,7 +211,7 @@ int main(void)
 	// generate_sin_table(0.2f); // 生成正弦波表，幅值为1.0
 	// DAC_Configuration(SIN_Value, SIN_Value_Length);//DAC配置，使用正弦波数据
 	// Tim4_Configuration(1000, SIN_Value_Length);//配置定时器4，频率1000Hz，采样点数为SIN_Value_Length
-		
+	
 	while(1)
 	{
 
@@ -220,10 +220,29 @@ int main(void)
 		//OLED_Refresh();
 		//AD9220_DATAHandle();//AD9220数据处理函数
 		//printf("32\n");
-		Model_3(); // 调用模型1函数
-		
-
-
+		//Model_3(); // 调用模型1函数
+        
+		OLED_Refresh(); // 刷新OLED显示
+		switch (model)
+		{
+			case 0:
+				OLED_Clear(); // 清屏
+				OLED_ShowString(16, 0, "Model: 0", 16, 1); // 显示当前模型
+				OLED_Refresh(); // 刷新OLED显示
+				Model_0(); // 调用模型0函数
+				break;
+			case 1:
+				Model_1(); // 调用模型1函数
+				break;
+			case 2:
+				Model_2(); // 调用模型2函数
+				break;
+			case 3:
+				Model_3(); // 调用模型3函数
+				break;
+			default:
+				break;
+		}
 
 	}
 }
@@ -289,6 +308,21 @@ float filter5(float *filter_buf)
  return filter_sum / (Filter_Number - 2);
 }
 
+void Model_0(void)
+{
+	while(1)
+	{
+		delay_ms(100); // 延时100毫秒
+		if(Key_WakeUp_interrupt_flag)
+		{
+			Key_WakeUp_interrupt_flag = 0; // 清除中断标志
+			printf("Exit Model_0\r\n");
+			model = 1; // 切换到模型1
+			return; // 退出函数
+		}
+	}
+}
+
 
 
 void Model_1(void)
@@ -306,71 +340,82 @@ void Model_1(void)
     if (!initialized)
     {
         AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
-        AD9833_AmpSet(128);
+        AD9833_AmpSet(150);
         printf("AD9833 initialized. Frequency: %lu Hz (Max: 5MHz)\r\n", current_frequency);
-        printf("KEY0: +freq, KEY1: -freq, KEY2: step, WakeUp: exit\r\n");
+        printf("KEY2: +freq, KEY0: -freq, KEY1: step, WakeUp: exit\r\n");  // 修正提示信息
         initialized = 1;
     }
-	while(1)
-	{
-    // KEY0: 频率增加
-    if(KEY0_interrupt_flag)
-    {
-        KEY0_interrupt_flag = 0; // 清除中断标志
-        
-        if(current_frequency + frequency_step <= max_frequency)
-        {
-            current_frequency += frequency_step;
-            AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
-            printf("Frequency increased to: %lu Hz, Step: %lu Hz\r\n", 
-                   current_frequency, frequency_step);
-        }
-        else
-        {
-            printf("Maximum frequency reached: %lu Hz (5MHz)\r\n", max_frequency);
-        }
-    }
+	OLED_Clear(); // 清屏
     
-    // KEY1: 频率减少
-    if(KEY1_interrupt_flag)
-    {
-        KEY1_interrupt_flag = 0; // 清除中断标志
-        
-        if(current_frequency >= min_frequency + frequency_step)
-        {
-            current_frequency -= frequency_step;
-            AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
-            printf("Frequency decreased to: %lu Hz, Step: %lu Hz\r\n", 
-                   current_frequency, frequency_step);
-        }
-        else
-        {
-            printf("Minimum frequency reached: %lu Hz\r\n", min_frequency);
-        }
-    }
+    OLED_ShowString(0, 16, "Model: 1", 16, 1); // 显示当前模型
     
-    // KEY2: 切换步长
-    if(KEY2_interrupt_flag)
+    while(1)
     {
-        KEY2_interrupt_flag = 0; // 清除中断标志
+        // KEY2: 频率增加
+        if(KEY2_interrupt_flag)
+        {
+            KEY2_interrupt_flag = 0; // 清除中断标志
+            
+            if(current_frequency + frequency_step <= max_frequency)
+            {
+                current_frequency += frequency_step;
+                AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
+                printf("Frequency increased to: %lu Hz, Step: %lu Hz\r\n", 
+                       current_frequency, frequency_step);
+            }
+            else
+            {
+                printf("Maximum frequency reached: %lu Hz (5MHz)\r\n", max_frequency);
+            }
+        }
         
-        step_index = (step_index + 1) % 3; // 循环切换0,1,2
-        frequency_step = step_values[step_index];
+        // KEY0: 频率减少
+        if(KEY0_interrupt_flag)
+        {
+            KEY0_interrupt_flag = 0; // 清除中断标志
+            
+            if(current_frequency >= min_frequency + frequency_step)
+            {
+                current_frequency -= frequency_step;
+                AD9833_WaveSeting(current_frequency, 0, SIN_WAVE, 0);
+                printf("Frequency decreased to: %lu Hz, Step: %lu Hz\r\n", 
+                       current_frequency, frequency_step);
+            }
+            else
+            {
+                printf("Minimum frequency reached: %lu Hz\r\n", min_frequency);
+            }
+        }
         
-        const char* step_names[3] = {"100Hz", "1kHz", "10kHz"};
-        printf("Step changed to: %s (%lu Hz)\r\n", 
-               step_names[step_index], frequency_step);
+        // KEY1: 切换步长
+        if(KEY1_interrupt_flag)
+        {
+            KEY1_interrupt_flag = 0; // 清除中断标志
+            
+            step_index = (step_index + 1) % 3; // 循环切换0,1,2
+            frequency_step = step_values[step_index];
+            
+            const char* step_names[3] = {"100Hz", "1kHz", "10kHz"};
+            printf("Step changed to: %s (%lu Hz)\r\n", 
+                   step_names[step_index], frequency_step);
+        }
+        
+        // 显示当前状态
+        OLED_ShowString(0, 32, "Freq: ", 16, 1); // 显示频率
+        OLED_ShowNum(0, 48, current_frequency, 7, 16, 1); // 显示当前频率
+        OLED_ShowString(0, 64, "Step: ", 16, 1); // 显示步长
+        OLED_ShowNum(72, 64, frequency_step, 5, 16, 1); // 显示当前步长
+        OLED_Refresh(); // 刷新OLED显示
+        
+        // 退出条件：使用WakeUp按键切换模式
+        if(Key_WakeUp_interrupt_flag)
+        {
+            Key_WakeUp_interrupt_flag = 0; // 清除中断标志
+            printf("Exit Model_1\r\n");
+            model = 2; // 切换到模型2
+            return; // 退出函数
+        }
     }
-    
-    // 退出条件：使用WakeUp按键切换模式
-    if(Key_WakeUp_interrupt_flag)
-    {
-        Key_WakeUp_interrupt_flag = 0; // 清除中断标志
-        printf("Exit Model_1\r\n");
-        return; // 退出函数
-    }
-
-	}
 }
 
 void Model_2(void)
@@ -378,12 +423,19 @@ void Model_2(void)
 	generate_sin_table(0.79f); // 生成正弦波表，幅值为0.79V
 	DAC_Configuration(SIN_Value, SIN_Value_Length);//DAC配置，使用正弦波数据
 	Tim4_Configuration(1000, SIN_Value_Length);//配置定时器4，频率1000Hz，采样点数为SIN_Value_Length
+	OLED_Clear(); // 清屏
+	OLED_ShowString(0, 0, "Model: 2", 16, 1); // 显示当前模型
+	OLED_ShowString(0, 16, "Freq: 1000Hz", 16, 1); // 显示频率
+	OLED_ShowString(0, 32, "Amp: 2.0V", 16, 1); // 显示幅度
+	OLED_Refresh(); // 刷新OLED显示
 	while(1)
 	{
+		delay_ms(100); // 延时100ms，避免过快刷新
 		if(Key_WakeUp_interrupt_flag)
 		{
 			Key_WakeUp_interrupt_flag = 0; // 清除中断标志
 			printf("Exit Model_2\r\n");
+			model = 3; // 切换到模型3
 			return; // 退出函数
 		}
 	}
@@ -433,6 +485,7 @@ void Model_3(void)
     
     static uint8_t control_mode = 0;         // 控制模式：0=电压控制，1=频率控制
     static uint8_t initialized = 0;         // 初始化标志
+	OLED_Clear(); // 清屏
     
     // 首次运行时初始化DAC
     if (!initialized)
@@ -452,30 +505,28 @@ void Model_3(void)
         printf("KEY1: switch mode, KEY0/KEY2: adjust value, WakeUp: exit\r\n");
         initialized = 1;
     }
-
+	OLED_ShowString(0, 0, "Model: 3", 16, 1); // 显示当前模型
     while(1)
     {
-        // KEY1: 切换控制模式（电压/频率）
+         // 清除显示区域，避免字符重叠
+        OLED_ShowString(0, 0, "Model: 3        ", 16, 1); // 显示当前模型
+        
+
+		// KEY1: 切换控制模式（电压/频率）
         if(KEY1_interrupt_flag)
         {
             KEY1_interrupt_flag = 0; // 清除中断标志
             
             control_mode = !control_mode; // 切换模式
-            
+        }
             if(control_mode == 0)
             {
-                printf("Switched to VOLTAGE control mode\r\n");
-                printf("Current: %.1fV (Range: %.1f-%.1fV, Step: %.1fV)\r\n", 
-                       target_voltage, min_voltage, max_voltage, voltage_step);
+                OLED_ShowString(0, 16, "Mode: Voltage   ", 16, 1);
             }
             else
             {
-                printf("Switched to FREQUENCY control mode\r\n");
-                printf("Current: %lu Hz (Range: %lu-%lu Hz, Step: %lu Hz)\r\n", 
-                       dac_frequency, min_frequency, max_frequency, frequency_step);
+                OLED_ShowString(0, 16, "Mode: Frequency ", 16, 1);
             }
-        }
-
         // 根据控制模式处理按键
         switch (control_mode)
         {
@@ -604,12 +655,30 @@ void Model_3(void)
             default:
                 break;
         }
+        // 显示频率 - 修正显示位置和格式
+        OLED_ShowString(0, 32, "Freq:", 16, 1);
+        OLED_ShowNum(64, 32, dac_frequency, 4, 16, 1); // 显示频率数值
+        OLED_ShowString(96, 32, "Hz  ", 16, 1); // 显示单位
         
+        // 显示目标电压 - 修正小数显示
+        OLED_ShowString(0, 48, "Volt:", 16, 1);
+        // 将浮点数转换为整数显示（例如2.1V显示为21，表示2.1V）
+        uint16_t voltage_display = (uint16_t)(target_voltage * 10);
+        uint16_t voltage_integer = voltage_display / 10;
+        uint16_t voltage_decimal = voltage_display % 10;
+        
+        OLED_ShowNum(64, 48, voltage_integer, 1, 16, 1); // 整数部分
+        OLED_ShowString(80, 48, ".", 16, 1);             // 小数点
+        OLED_ShowNum(88, 48, voltage_decimal, 1, 16, 1); // 小数部分
+        OLED_ShowString(104, 48, "V  ", 16, 1);          // 单位
+		OLED_Refresh(); // 刷新OLED显示
+
         // 退出条件：使用WakeUp按键
         if(Key_WakeUp_interrupt_flag)
         {
             Key_WakeUp_interrupt_flag = 0; // 清除中断标志
             printf("Exit Model_3\r\n");
+			model = 0; // 切换到模型0
             
             // 停止DAC输出
             TIM_Cmd(TIM4, DISABLE);
@@ -619,23 +688,4 @@ void Model_3(void)
     }
 }
 
-
-void Model_0(void)
-{
-	switch (Model)
-	{
-		case 1:
-			Model_1();
-			Key_WakeUp_interrupt_flag = 0; //清除中断标志
-			break;
-		case 2:
-			
-			break;
-		case 3:
-			
-			break;
-		default:
-			break;
-	}
-}
 

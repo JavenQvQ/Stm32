@@ -7,6 +7,7 @@
 	在外部中断中读取 12-bit 数据，使用下降沿中断
 **************************************************************************/
 #include "ad9220.h"
+#include "board.h"
 
 // 添加中断标志变量
 volatile uint8_t KEY0_interrupt_flag = 0;
@@ -107,7 +108,6 @@ void EXTI0_IRQHandler(void)
         if(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0) == Bit_SET)
         {
             Key_WakeUp_interrupt_flag = 1; // 
-            printf("WakeUp KEY pressed (PA0)\r\n");
         }
         EXTI_ClearITPendingBit(EXTI_Line0);
     }

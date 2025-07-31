@@ -256,9 +256,6 @@
             "path": "../Hardware/OLED.h"
           },
           {
-            "path": "../Hardware/OLED_Font.h"
-          },
-          {
             "path": "../Hardware/bmp.h"
           },
           {
