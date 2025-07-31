@@ -68,10 +68,10 @@
 #define DCMI_D3_PINSOURCE        	GPIO_PinSource9
 #define DCMI_D3_AF			        GPIO_AF_DCMI
 
-#define DCMI_D4_GPIO_PORT        	GPIOE
-#define DCMI_D4_GPIO_CLK         	RCC_AHB1Periph_GPIOE
-#define DCMI_D4_GPIO_PIN         	GPIO_Pin_4
-#define DCMI_D4_PINSOURCE        	GPIO_PinSource4
+#define DCMI_D4_GPIO_PORT        	GPIOC
+#define DCMI_D4_GPIO_CLK         	RCC_AHB1Periph_GPIOC
+#define DCMI_D4_GPIO_PIN         	GPIO_Pin_11
+#define DCMI_D4_PINSOURCE        	GPIO_PinSource11
 #define DCMI_D4_AF			        GPIO_AF_DCMI
 
 #define DCMI_D5_GPIO_PORT        	GPIOB

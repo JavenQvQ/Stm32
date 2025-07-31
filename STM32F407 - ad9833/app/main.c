@@ -13,6 +13,9 @@
 						//GPIOD: 1个引脚（PD2）
 						//GPIOE: 4个引脚（PE4, PE5, PE6, PE14, PE15）
 #include "ad9833.h"//使用PB12 PB13 PB14,
+
+#include "key.h"//使用PA0 PE2 PE3 PE4
+
 #include <stdio.h>
 #include "board.h"
 #define Filter_Number 4//滤波器长度
@@ -140,12 +143,13 @@ int main(void)
 	//OLED_Init();
 	
 	uart1_init(115200U);
+	EXTI_Key_Init();//按键初始化
 	//uart2_init(115200U);
 	//ADC_FFT_Init();//ADC初始化
-    //AD9220_DCMIDMA_Config();//AD9220初始化
-	// AD9833_Init_GPIO();//AD9833初始化GPIO
-	// AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
-	// AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
+    AD9220_DCMIDMA_Config();//AD9220初始化
+	AD9833_Init_GPIO();//AD9833初始化GPIO
+	AD9833_WaveSeting(3000,0, SIN_WAVE, 0);//设置AD9833输出正弦波，频率1000Hz
+	AD9833_AmpSet(128);//设置AD9833输出幅度 33-对应滤波器输出2V
 
 
 
@@ -158,7 +162,7 @@ int main(void)
 		//OLED_ShowNum(0,0,AD9220ReadData(100000),5,12,1);//显示AD9220数据
 		//OLED_Refresh();
 		//AD9220_DATAHandle();//AD9220数据处理函数
-		printf("32\n");
+		//printf("32\n");
 		
 
 
@@ -173,13 +177,13 @@ void DMA2_Stream1_IRQHandler(void)
 
 	//dcmi_capture_control(DISABLE);//关闭DCMI采集
 	HSYNC_VSYNC_init();
-// 	for(counter = 0; counter < ADC_DMA_DATA_LENGTH; counter++)
-// 	{
-// //		printf("%u\r\n",adc_convert_value[counter]);//串口打印数据
-// 		printf("%u\r\n",(uint16_t)adc_convert_value[counter]);
-// 		printf("%u\r\n",(uint16_t)(adc_convert_value[counter] >> 16));//串口打印数据
-// 		//printf("32\n");
-// 	}
+	for(counter = 0; counter < ADC_DMA_DATA_LENGTH; counter++)
+	{
+//		printf("%u\r\n",adc_convert_value[counter]);//串口打印数据
+		printf("%u\r\n",(uint16_t)adc_convert_value[counter]);
+		printf("%u\r\n",(uint16_t)(adc_convert_value[counter] >> 16));//串口打印数据
+		//printf("32\n");
+	}
 	//dcmi_capture_control(ENABLE);//开启DCMI采集
 	DMA_ClearITPendingBit(DMA2_Stream1, DMA_IT_TCIF1); //清除中断标志位 TCIF:DMA 传输完成
 	GPIO_ResetBits(GPIOE,GPIO_Pin_14 | GPIO_Pin_15);//将 HSYNC 和 VSYNC 拉低，开始采集
