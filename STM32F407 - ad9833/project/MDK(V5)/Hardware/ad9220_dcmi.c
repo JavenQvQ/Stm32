@@ -41,7 +41,7 @@ void dcmi_gpio_init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 
 	/* 使能 DCMI 相关引脚时钟 */
-RCC_AHB1PeriphClockCmd( DCMI_VSYNC_GPIO_CLK | DCMI_HSYNC_GPIO_CLK | DCMI_PIXCLK_GPIO_CLK|
+    RCC_AHB1PeriphClockCmd( DCMI_VSYNC_GPIO_CLK | DCMI_HSYNC_GPIO_CLK | DCMI_PIXCLK_GPIO_CLK|
                         DCMI_D0_GPIO_CLK| DCMI_D1_GPIO_CLK| DCMI_D2_GPIO_CLK| DCMI_D3_GPIO_CLK|
                         DCMI_D4_GPIO_CLK| DCMI_D5_GPIO_CLK| DCMI_D6_GPIO_CLK| DCMI_D7_GPIO_CLK| 
                         DCMI_D8_GPIO_CLK| DCMI_D9_GPIO_CLK| DCMI_D10_GPIO_CLK| DCMI_D11_GPIO_CLK, ENABLE);
@@ -258,7 +258,7 @@ void Tim5_PWM_Config(uint32_t Fre)
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
     
     // 配置PA2为TIM5_CH2 PWM输出
-     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -289,7 +289,6 @@ void AD9220_DCMIDMA_Config(void)
 {	
 	MCO1_GPIO_Config();//配置 PA8 为输出模式
 	RCC_MCO1Config(RCC_MCO1Source_HSE,0x06000000);//PA8 输出 8M 时钟信号
-	//Tim5_PWM_Config(100000); // PA1输出Fre频率的PWM信号
 	
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//设置系统中断优先级分组2:2位抢占优先级，2位响应优先级	
 	
