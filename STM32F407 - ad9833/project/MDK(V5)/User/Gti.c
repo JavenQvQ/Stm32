@@ -269,6 +269,9 @@ void process_single_channel_fft_optimized(uint16_t* adc_data, uint32_t sample_ra
     
     // 执行实数FFT
     arm_rfft_fast_f32(&fft_instance, fft_input_buffer, fft_input_buffer, 0);
+
+    fft_input_buffer[0] = 0.0f; // DC分量置零，避免影响幅度计算
+
     
     // 计算幅度谱
     arm_cmplx_mag_f32(fft_input_buffer, fft_output_buffer, FFT_SIZE / 2);
@@ -1036,11 +1039,15 @@ void scan_all_frequency_points(void)
         }
         printf("%d,%.2f,%.2f\r\n", 
                    i + 1, g_gain_db_array[i], g_phase_diff_array[i]);
-    // 对整个幅度响应进行理想RLC电路的连续性优化
-    smooth_magnitude_response();
-    // 声明分析结果结构体
-    // 在OLED上显示结果
+    
+        if(Key_WakeUp_interrupt_flag)
+        {
+            Key_WakeUp_interrupt_flag = 0;  // 清除标志
+            model=5;  // 设置当前模式为Model 5
+            return;  // 退出扫描
+        }
     }
+
     smooth_magnitude_response();
     analyze_rlc_filter(&analysis_result);
     print_detailed_analysis_report(&analysis_result);
@@ -1079,7 +1086,7 @@ void Model_4(void)
     // 初始化FFT实例
     init_fft_instance();
 
-    
+
     AD9833_AmpSet(115); 
     
     // 初始化AD9833
@@ -1089,27 +1096,30 @@ void Model_4(void)
     ADC_FFT_Init();
     
     delay_ms(10); // 等待系统稳定
-    
+    OLED_ShowString(0, 0, "Model 5: RLC Scan",16, 1);
+    OLED_Refresh();    
     while(1)
     {   
         // 显示扫描开始信息
         OLED_Clear();
-        OLED_ShowString(0, 0, "Model 5: RLC Scan",16, 1);
-        OLED_Refresh();
-        
-        // 执行纯计算扫描，不包含任何OLED显示操作
-        scan_all_frequency_points();
-        
-        // 扫描完成后显示结果并等待用户操作
-        while(1)
+
+        if(KEY1_interrupt_flag)
         {
-            delay_ms(100);
-            if(Key_WakeUp_interrupt_flag)
+            KEY1_interrupt_flag = 0;  // 清除标志
+            // 执行纯计算扫描，不包含任何OLED显示操作
+            scan_all_frequency_points();
+            // 扫描完成后显示结果并等待用户操作
+            while(1)
             {
-                Key_WakeUp_interrupt_flag = 0;  // 清除标志
-                return;  // 退出扫描
-            }
-            // 其他按键可以添加切换显示等功能
+                delay_ms(100);
+                if(Key_WakeUp_interrupt_flag)
+                {
+                    Key_WakeUp_interrupt_flag = 0;  // 清除标志
+                    model=5;  // 设置当前模式为Model 5
+                    return;  // 退出扫描
+                }
+                // 其他按键可以添加切换显示等功能
+            }            
         }
     }
 }

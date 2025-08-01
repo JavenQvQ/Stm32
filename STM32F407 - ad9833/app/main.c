@@ -635,7 +635,7 @@ void Model_3(void)
         {
             Key_WakeUp_interrupt_flag = 0; // 清除中断标志
             printf("Exit Model_3\r\n");
-            model = 0; // 切换到模型0
+            model = 4; // 切换到模型0
             
             // 停止DAC输出
             TIM_Cmd(TIM4, DISABLE);

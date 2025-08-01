@@ -245,6 +245,12 @@
           },
           {
             "path": "../User/Gti.h"
+          },
+          {
+            "path": "../User/G2ti.c"
+          },
+          {
+            "path": "../User/G2ti.h"
           }
         ],
         "folders": []
