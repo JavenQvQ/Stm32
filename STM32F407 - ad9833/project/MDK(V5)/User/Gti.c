@@ -1048,7 +1048,21 @@ void scan_all_frequency_points(void)
         }
     }
 
-    smooth_magnitude_response();
+    // 只有在检测到数据质量问题时才进行平滑处理
+    uint16_t outlier_count = 0;
+    for(uint16_t i = 1; i < 179; i++) {
+        if(g_gain_db_array[i] > -90.0f && g_gain_db_array[i-1] > -90.0f) {
+            float32_t diff = fabsf(g_gain_db_array[i] - g_gain_db_array[i-1]);
+            if(diff > 8.0f) outlier_count++; // 检测异常跳跃
+        }
+    }
+    
+    // 只有当异常跳跃超过阈值时才进行平滑处理
+    if(outlier_count > 5) {
+        smooth_magnitude_response();
+        printf("数据平滑处理完成，修正了%d个异常点\r\n", outlier_count);
+    }
+    
     analyze_rlc_filter(&analysis_result);
     print_detailed_analysis_report(&analysis_result);
     OLED_ShowString(0, 32, (uint8_t*)filter_type_strings[analysis_result.type], 16, 1);
@@ -1099,16 +1113,13 @@ void Model_4(void)
     OLED_ShowString(0, 0, "Model 5: RLC Scan",16, 1);
     OLED_Refresh();    
     while(1)
-    {   
-        // 显示扫描开始信息
-        OLED_Clear();
-
+    {  
+        delay_1ms(10);   
         if(KEY1_interrupt_flag)
         {
             KEY1_interrupt_flag = 0;  // 清除标志
-            // 执行纯计算扫描，不包含任何OLED显示操作
+
             scan_all_frequency_points();
-            // 扫描完成后显示结果并等待用户操作
             while(1)
             {
                 delay_ms(100);

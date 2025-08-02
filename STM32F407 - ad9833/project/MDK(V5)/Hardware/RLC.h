@@ -12,7 +12,6 @@ typedef enum {
     FILTER_HIGH_PASS = 1,
     FILTER_BAND_PASS = 2,
     FILTER_BAND_STOP = 3,
-    FILTER_UNDETERMINED = 4
 } filter_type_t;
 
 // 分析结果结构体
@@ -22,7 +21,8 @@ typedef struct {
     float32_t q_factor;         // Q值
     float32_t bandwidth;        // 带宽 Hz
     float32_t damping_ratio;    // 阻尼比 (zeta = 1/(2*Q))
-    float32_t confidence;       // 置信度 0-1
+    float32_t lc_product;       // LC乘积
+    float32_t rc_product;       // RC乘积
 } rlc_analysis_result_t;
 
 /**
@@ -41,6 +41,36 @@ void analyze_rlc_filter(rlc_analysis_result_t* result);
  *        报告格式化为易于阅读的字符串，适合在串口监控或调试输出。
  */
 void print_detailed_analysis_report(const rlc_analysis_result_t* result);
+
+/**
+ * @brief 精确的相位目标频率查找 - 针对100-250kHz离散频率点优化
+ * @param target_phase_deg: 目标相位（度）
+ * @param result: 分析结果结构体指针（用于上下文信息）
+ * @return 插值得到的精确频率（Hz）
+ * @note  使用对数频率域插值，提高离散频率点的定位精度
+ */
+float32_t find_frequency_at_phase_precise(float32_t target_phase_deg, rlc_analysis_result_t* result);
+
+/**
+ * @brief 精确的增益峰值频率查找 - 使用抛物线插值
+ * @return 插值得到的精确峰值频率（Hz）
+ * @note  使用三点抛物线拟合来找到真实的增益峰值位置
+ */
+float32_t find_peak_frequency_precise(void);
+
+/**
+ * @brief 查找相位变化率最大点对应的频率
+ * @return 相位导数最大处的频率（Hz）
+ * @note  谐振频率处相位变化率最大，这是另一种定位中心频率的方法
+ */
+float32_t find_max_phase_derivative_frequency(void);
+
+/**
+ * @brief 精确的陷波频率查找 - 使用抛物线插值
+ * @return 插值得到的精确陷波频率（Hz）
+ * @note  用于带阻滤波器的中心频率定位
+ */
+float32_t find_notch_frequency_precise(void);
 
 #endif
 
